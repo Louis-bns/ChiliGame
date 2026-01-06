@@ -6,7 +6,7 @@ let px = (game.clientWidth  - player.clientWidth)  / 2;
 let py = (game.clientHeight - player.clientHeight) / 2;
 
 /* Bewegungsgeschwindigkeit (px pro Frame) */
-const SPEED = 4;
+const SPEED = 1;
 
 /* Eingabestatus */
 const keys = { left:false, right:false, up:false, down:false };
