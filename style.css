@@ -1,0 +1,71 @@
+:root {
+  --cols: 45;
+  --rows: 45;
+}
+
+/* Bühne */
+body {
+  background: #111;
+  color: #fff;
+  text-align: center;
+  font-family: sans-serif;
+  margin: 0;
+}
+
+#game {
+  position: relative;
+  width: calc(var(--cols) * 32px);
+  height: calc(var(--rows) * 32px);
+  margin: 20px auto;
+  background: #333;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 32px);
+  grid-template-rows: repeat(var(--rows), 32px);
+  image-rendering: pixelated;
+}
+
+/* -------------------- SPIELER -------------------- */
+/* Dein Original-Sprite ist 1536×1024 => Frame = 384×512.
+   Wir skalieren auf 25% => Anzeige pro Frame: 96×128.
+   Sheet skaliert: 384×256 (1536×1024 * 0.25) */
+#player {
+  position: absolute;
+  width: 96px;     /* Framebreite skaliert */
+  height: 128px;   /* Framehöhe skaliert */
+  z-index: 10;
+  image-rendering: pixelated;
+
+  background-image: url('koch.png');   /* <— Pfad/Name ggf. anpassen */
+  background-repeat: no-repeat;
+  background-size: 384px 256px;        /* Sheet gesamt skaliert (25%) */
+  background-position: 0 0;            /* Start: rechts, Frame 1 */
+
+  /* Keine CSS-Transitions auf transform! (vermeidet Ruckler) */
+}
+
+/* ---------- Animations-Definition (gemeinsam) ---------- */
+@keyframes walk {
+  /* 4 Frames → 4 Schritte × 96px = 384px Gesamtbreite */
+  from { background-position-x: 0; }
+  to   { background-position-x: -384px; }
+}
+
+/* ---------- Richtungen: immer nur EINE Walk-Klasse aktiv ---------- */
+/* Rechtslauf: erste Zeile */
+#player.walk-right {
+  background-position-y: 0;                  /* Zeile 1 (rechts) */
+  animation: walk 0.5s steps(4) infinite;
+}
+
+/* Linkslauf: zweite Zeile */
+#player.walk-left {
+  background-position-y: -128px;             /* Zeile 2 (links) */
+  animation: walk 0.5s steps(4) infinite;
+}
+
+/* Hoch/Runter: verwende den rechten Laufzyklus (sieht besser aus als starr) */
+#player.walk-up,
+#player.walk-down {
+  background-position-y: 0;                  /* Zeile 1 (rechts) */
+  animation: walk 0.5s steps(4) infinite;
+}
