@@ -60,7 +60,7 @@ body {
 /* Rechtslauf: erste Zeile */
 #player.walk-right {
   background-position-y: 0;                  /* Zeile 1 (rechts) */
-  animation: walk 0.7s steps(4) infinite;
+  animation: walk 0.5s steps(4) infinite;
 }
 
 /* Linkslauf: zweite Zeile */
