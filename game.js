@@ -1,14 +1,19 @@
 const game = document.getElementById('game');
 const player = document.getElementById('player');
+const bat = document.getElementById('bat');
 
-/* Startposition ungefähr mittig platzieren */
+/* Startposition ungefähr mittig platzieren Player */
 let px = (game.clientWidth  - player.clientWidth)  / 2;
 let py = (game.clientHeight - player.clientHeight) / 2;
+
+/* Startposition ungefähr mittig platzieren Bat */
+let bx = (game.clientWidth  - bat.clientWidth)  / 3;
+let by = (game.clientHeight - bat.clientHeight) / 3;
 
 /* Bewegungsgeschwindigkeit (px pro Frame) */
 const SPEED = 1;
 
-/* Eingabestatus */
+/* Eingabestatus Player */
 const keys = { left:false, right:false, up:false, down:false };
 
 /* Hilfen */
@@ -18,6 +23,11 @@ function setWalkClass(dir) {
   // alle Walk-Klassen entfernen → verhindert Misch-Frames
   player.classList.remove('walk-left', 'walk-right', 'walk-up', 'walk-down');
   if (dir) player.classList.add('walk-' + dir);
+}
+
+function setBatWalkClass(dir) {
+  bat.classList.remove('walk-left', 'walk-right', 'walk-up', 'walk-down');
+  if (dir) bat.classList.add('walk-' + dir);
 }
 
 function update() {
@@ -45,10 +55,12 @@ function update() {
 
   // Rendern
   player.style.transform = `translate(${px}px, ${py}px)`;
+// Bat Bewegung
+  updateBatInfinity();
 
   requestAnimationFrame(update);
 }
-
+ 
 /* Tastatur-Handling */
 document.addEventListener('keydown', (e) => {
   switch (e.key.toLowerCase()) {
@@ -79,6 +91,37 @@ document.addEventListener('keyup', (e) => {
   }
   e.preventDefault();
 });
+
+/* Bat: Unendlichkeitspfad (∞) */
+const a = (game.clientWidth - bat.clientWidth) / 2;
+const b = (game.clientHeight - bat.clientHeight) / 2;
+const cx = game.clientWidth / 2 - bat.clientWidth / 2;
+const cy = game.clientHeight / 2 - bat.clientHeight / 2;
+let t = 0;
+
+function updateBatInfinity() {
+  const sinT = Math.sin(t);
+  const cosT = Math.cos(t);
+  const denom = 20 + sinT * sinT; //größe der schleife
+  const x = cx + a * cosT / denom;
+  const y = cy + b * cosT * sinT / denom;
+
+  // Richtung für Animation
+  const dx = x - bx;
+  const dy = y - by;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    if (dx > 0) setBatWalkClass('right');
+    else setBatWalkClass('left');
+  } else {
+    if (dy > 0) setBatWalkClass('down');
+    else setBatWalkClass('up');
+  }
+
+  bx = x;
+  by = y;
+  bat.style.transform = `translate(${bx}px, ${by}px)`;
+  t += 0.01; // Geschwindigkeit
+}
 
 /* Start */
 player.style.transform = `translate(${px}px, ${py}px)`;

@@ -50,11 +50,17 @@ body {
   to   { background-position-x: -384px; }
 }
 
+/* Bat Richtungen */
+#bat.walk-right { background-position-y: 0; animation: walk 0.7s steps(4) infinite; }
+#bat.walk-left  { background-position-y: -128px; animation: walk 0.7s steps(4) infinite; }
+#bat.walk-up,
+#bat.walk-down { background-position-y: 0; animation: walk 0.7s steps(4) infinite; }
+
 /* ---------- Richtungen: immer nur EINE Walk-Klasse aktiv ---------- */
 /* Rechtslauf: erste Zeile */
 #player.walk-right {
   background-position-y: 0;                  /* Zeile 1 (rechts) */
-  animation: walk 0.5s steps(4) infinite;
+  animation: walk 0.7s steps(4) infinite;
 }
 
 /* Linkslauf: zweite Zeile */
@@ -68,4 +74,16 @@ body {
 #player.walk-down {
   background-position-y: 0;                  /* Zeile 1 (rechts) */
   animation: walk 0.5s steps(4) infinite;
+}
+
+#bat {
+  position: absolute;
+  width: 96px;     /* Framebreite Bat (separat anpassbar) */
+  height: 128px;   /* Framehöhe Bat */
+  z-index: 10;
+  image-rendering: pixelated;
+  background-image: url('Bat.png');   /* Bat Sprite */
+  background-repeat: no-repeat;
+  background-size: 384px 256px;       /* Bat Sheet gesamt skaliert */
+  background-position: 0 0;
 }
