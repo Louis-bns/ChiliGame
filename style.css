@@ -12,6 +12,54 @@ body {
   margin: 0;
 }
 
+#startscreen {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  background: black;
+
+  display: flex;
+  flex-direction: column;   /* WICHTIG */
+  align-items: center;
+  justify-content: center;
+
+  clip-path: ellipse(150% 150% at 50% 50%);
+  transition: clip-path 2s ease-out, opacity 200s ease-out;
+}
+
+/* Startbild */
+.start-image {
+  width: 512px;
+  max-width: 90vw;
+  height: auto;
+
+  image-rendering: pixelated;
+  margin-bottom: 24px; /* Abstand nach unten */
+}
+
+/* Blinkender Text */
+.press-enter {
+  font-family: monospace;
+  font-size: 48px;
+  font-weight: bold;
+  color: #ff3b00;
+  letter-spacing: 2px;
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+  0%   { opacity: 1; }
+  50%  { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Beim Start ausblenden */
+#startscreen.startscreen-hide {
+  clip-path: ellipse(0% 0% at 50% 50%);
+  opacity: 0;
+  pointer-events: none;
+}
+
 #game {
   position: relative;
   width: calc(var(--cols) * 32px);

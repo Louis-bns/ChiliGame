@@ -1,6 +1,13 @@
 const game = document.getElementById('game');
 const player = document.getElementById('player');
 const bat = document.getElementById('bat');
+const startScreen = document.getElementById('startscreen');
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !startScreen.classList.contains('startscreen-hide')) {
+    startScreen.classList.add('startscreen-hide');
+  }
+});
 
 /* Startposition ungefähr mittig platzieren Player */
 let px = (game.clientWidth  - player.clientWidth)  / 2;
