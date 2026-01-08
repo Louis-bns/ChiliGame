@@ -1,4 +1,3 @@
-
 const game = document.getElementById("game");
 const player = document.getElementById("player");
 const bat = document.getElementById("bat");
@@ -16,6 +15,97 @@ let wallGrid = null; // 2D boolean [row][col]
 let TILE = 32;
 
 /* =========================
+   TRIGGER MESSAGE (HUD)
+   ========================= */
+function ensureMessageBox() {
+  let el = document.getElementById("level-message");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "level-message";
+
+    el.style.position = "fixed";
+    el.style.left = "50%";
+    el.style.top = "50%";
+    el.style.transform = "translate(-50%, -50%)";
+
+    el.style.padding = "28px 36px";
+    el.style.borderRadius = "16px";
+    el.style.background = "rgba(0, 0, 0, 0.85)";
+    el.style.color = "#fff";
+    el.style.fontFamily = "system-ui, Arial, sans-serif";
+    el.style.fontSize = "32px";
+    el.style.fontWeight = "600";
+    el.style.lineHeight = "1.3";
+    el.style.textAlign = "center";
+
+    el.style.maxWidth = "70vw";
+    el.style.boxShadow = "0 10px 40px rgba(0,0,0,0.6)";
+    el.style.zIndex = "99999";
+    el.style.display = "none";
+    el.style.pointerEvents = "none";
+
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+function showTempMessage(text, ms = 2000) {
+  const el = ensureMessageBox();
+  el.textContent = text;
+  el.style.display = "block";
+  clearTimeout(showTempMessage._t);
+  showTempMessage._t = setTimeout(() => {
+    el.style.display = "none";
+  }, ms);
+}
+
+/* =========================
+   SPAWN ARROWS (assets/arrows.png)
+   ========================= */
+function showSpawnArrows() {
+  const old = document.getElementById("spawn-arrows");
+  if (old) old.remove();
+
+  const img = document.createElement("img");
+  img.id = "spawn-arrows";
+  img.src = "assets/arrows.png";
+  img.alt = "arrows";
+
+  img.style.position = "absolute";
+  img.style.pointerEvents = "none";
+  img.style.zIndex = "30";
+
+  const size = 56 * 3;
+  img.style.width = size + "px";
+  img.style.height = size + "px";
+
+  game.appendChild(img);
+
+  const duration = 5000;
+  const start = performance.now();
+
+  if (typeof showSpawnArrows._raf !== "undefined") {
+    cancelAnimationFrame(showSpawnArrows._raf);
+  }
+
+  function tick(now) {
+    const left = px + player.clientWidth / 2 - size / 2;
+    const top = py - size - 40;
+
+    img.style.left = left + "px";
+    img.style.top = top + "px";
+
+    if (now - start < duration) {
+      showSpawnArrows._raf = requestAnimationFrame(tick);
+    } else {
+      img.remove();
+    }
+  }
+
+  showSpawnArrows._raf = requestAnimationFrame(tick);
+}
+
+/* =========================
    STARTSCREEN → ENTER
    ========================= */
 document.addEventListener("keydown", (e) => {
@@ -23,7 +113,6 @@ document.addEventListener("keydown", (e) => {
     gameStarted = true;
     startScreen.classList.add("startscreen-hide");
 
-    // Level 1 laden (aus level1.js)
     loadLevel(window.LEVEL1);
     requestAnimationFrame(update);
   }
@@ -45,7 +134,16 @@ const keys = { left: false, right: false, up: false, down: false };
    INPUT
    ========================= */
 document.addEventListener("keydown", (e) => {
-  switch (e.key.toLowerCase()) {
+  const k = e.key.toLowerCase();
+
+  // SPACE → Interaktion (nur wenn Game läuft)
+  if ((k === " " || e.code === "Space") && gameStarted) {
+    e.preventDefault();
+    handleInteract();
+    return;
+  }
+
+  switch (k) {
     case "arrowright":
     case "d": keys.right = true; break;
     case "arrowleft":
@@ -88,65 +186,183 @@ function setBatWalkClass(dir) {
 }
 
 /* =========================
+   TILE HELPERS
+   ========================= */
+function getTileAt(level, tx, ty) {
+  if (!level) return "1";
+  if (typeof level.getTile === "function") return level.getTile(tx, ty);
+
+  // fallback (falls du mal ein Level ohne getTile hast)
+  if (tx < 0 || ty < 0 || tx >= level.cols || ty >= level.rows) return "1";
+  const row = level.walls[ty];
+  if (!row) return "1";
+  return row[tx] ?? "1";
+}
+
+function getPlayerTilePos() {
+  const playerCenterX = px + player.clientWidth / 2;
+  const playerCenterY = py + player.clientHeight / 2;
+  const tx = Math.floor(playerCenterX / TILE);
+  const ty = Math.floor(playerCenterY / TILE);
+  return { tx, ty };
+}
+
+/* =========================
+   INTERACTION SYSTEM (SPACE)
+   ========================= */
+function handleInteract() {
+  if (!currentLevel) return;
+
+  const { tx, ty } = getPlayerTilePos();
+  const tile = getTileAt(currentLevel, tx, ty);
+
+  // 0 → nichts
+  if (tile === "0") return;
+
+  // pro Level: interactions["5"] = (ctx) => ...
+  const map = currentLevel.interactions || {};
+  const fn = map[tile];
+
+  if (typeof fn === "function") {
+    fn({
+      level: currentLevel,
+      tile,
+      tx,
+      ty,
+      showTempMessage,
+      // optional: falls du später NPCs etc. brauchst
+      playerEl: player,
+      gameEl: game
+    });
+    return;
+  }
+
+  // optionaler Fallback: Level kann auch onInteract haben
+  if (typeof currentLevel.onInteract === "function") {
+    currentLevel.onInteract({
+      level: currentLevel,
+      tile,
+      tx,
+      ty,
+      showTempMessage,
+      playerEl: player,
+      gameEl: game
+    });
+  }
+}
+
+/* =========================
    LEVEL LOADER
    ========================= */
 function loadLevel(level) {
   currentLevel = level;
   TILE = level.tileSize;
 
-  // CSS Grid Größe anpassen (Damit werden rows/cols automatisch aus der Map genommen und sind garantiert passend.
- level.rows = level.walls.length;
-level.cols = level.walls[0].length;
+  // rows/cols sauber aus der Map ziehen
+  level.rows = level.walls.length;
+  level.cols = level.walls[0].length;
 
-  // Wandgrid bauen
+  // Wandgrid bauen: NUR "1" ist Wand
   wallGrid = level.walls.map((rowStr) => [...rowStr].map((c) => c === "1"));
 
   // Spawn-Marker "2" suchen
-let spawnFound = false;
-for (let y = 0; y < level.walls.length; y++) {
-  const x = level.walls[y].indexOf("2");
-  if (x !== -1) {
-    level.spawn = { tx: x, ty: y };
-    spawnFound = true;
-    break;
+  let spawnFound = false;
+  for (let y = 0; y < level.walls.length; y++) {
+    const x = level.walls[y].indexOf("2");
+    if (x !== -1) {
+      level.spawn = { tx: x, ty: y };
+      spawnFound = true;
+      break;
+    }
   }
-}
-console.log("spawnFound:", spawnFound, "spawn:", level.spawn);
-// Span Punkt unsichtbar
-level.walls = level.walls.map(r => r.replaceAll("2", "0"));
+  console.log("spawnFound:", spawnFound, "spawn:", level.spawn);
+
+  // Spawn Punkt nur optisch entfernen (2 -> 0), Kollision bleibt via wallGrid
+  level.walls = level.walls.map(r => r.replaceAll("2", "0"));
+
+    // ✅ Tile-8 Sprites (animiert) aus dem Grid erzeugen
+  renderTile8Sprites(level);
 
   // Spawn: Tile → Pixel (oben links)
   px = level.spawn.tx * TILE + (TILE - player.clientWidth) / 2;
   py = level.spawn.ty * TILE + (TILE - player.clientHeight) / 2;
 
-  // Bat irgendwo hin (kannst du später levelabhängig machen) hab ich <§
-  // Gegner-Setup (levelabhängig)
-if (level.enemies?.bat) {
-  bat.style.display = "block";
+  // Gegner-Setup
+  if (level.enemies?.bat) {
+    bat.style.display = "block";
 
-  bx = (game.clientWidth - bat.clientWidth) / 3;
-  by = (game.clientHeight - bat.clientHeight) / 3;
+    bx = (game.clientWidth - bat.clientWidth) / 3;
+    by = (game.clientHeight - bat.clientHeight) / 3;
 
-  bat.style.transform = `translate(${bx}px, ${by}px)`;
-} else {
-  bat.style.display = "none";
-}
-
+    bat.style.transform = `translate(${bx}px, ${by}px)`;
+  } else {
+    bat.style.display = "none";
+  }
 
   player.style.transform = `translate(${px}px, ${py}px)`;
-if (level.enemies?.bat) {
-  bat.style.transform = `translate(${bx}px, ${by}px)`;
+  if (level.enemies?.bat) {
+    bat.style.transform = `translate(${bx}px, ${by}px)`;
+  }
+
+  showSpawnArrows();
+
+  // Debug-Wände (optional)
+  if (level.debugWalls === true) {
+    renderWallsDebug(level);
+  } else {
+    const tiles = document.getElementById("tiles");
+    if (tiles) tiles.innerHTML = "";
+  }
+
+  /* =========================
+   TILE 8 – Granny
+   ========================= */
+function renderTile8Sprites(level) {
+  // Layer holen/erzeugen
+  let decor = document.getElementById("decor");
+  if (!decor) {
+    decor = document.createElement("div");
+    decor.id = "decor";
+    game.insertBefore(decor, player); // hinter player, vor background
+  }
+
+  // alten Inhalt entfernen
+  decor.innerHTML = "";
+
+  // alle 8er im Grid finden und als Sprite setzen
+  for (let ty = 0; ty < level.rows; ty++) {
+    const row = level.walls[ty];
+    for (let tx = 0; tx < level.cols; tx++) {
+      if (row[tx] === "8") {
+        const el = document.createElement("div");
+        el.className = "tile8-anim";
+        el.style.left = (tx * TILE) + "px";
+        el.style.top  = (ty * TILE) + "px";
+        decor.appendChild(el);
+      }
+    }
+  }
 }
 
-  // Optional: Wände sichtbar machen (Debug)
-  renderWallsDebug(level);
+
+
+
+
+  // Trigger direkt am Spawn prüfen (Level-eigene Trigger, wenn vorhanden)
+  const { tx: spawnTx, ty: spawnTy } = getPlayerTilePos();
+  if (typeof currentLevel.checkTriggers === "function") {
+    currentLevel.checkTriggers(spawnTx, spawnTy);
+  }
+
+  // Tile-Tracking initialisieren
+  update._lastTx = spawnTx;
+  update._lastTy = spawnTy;
 }
 
 /* =========================
    WALL RENDER (Debug)
    ========================= */
 function renderWallsDebug(level) {
-  // Erzeuge/aktualisiere eine Tile-Ebene hinter Player/Bat
   let tiles = document.getElementById("tiles");
   if (!tiles) {
     tiles = document.createElement("div");
@@ -165,12 +381,14 @@ function renderWallsDebug(level) {
   for (let y = 0; y < level.rows; y++) {
     for (let x = 0; x < level.cols; x++) {
       const cell = document.createElement("div");
-      cell.className = wallGrid[y][x] ? "tile wall" : "tile";
+      cell.className = "tile";
+      if (level.debugWalls === true && wallGrid[y][x]) {
+        cell.className = "tile wall";
+      }
       tiles.appendChild(cell);
     }
   }
 
-  // Player/Bat nach vorne
   player.style.zIndex = "10";
   bat.style.zIndex = "10";
 }
@@ -180,12 +398,20 @@ function renderWallsDebug(level) {
    ========================= */
 function isWallTile(tx, ty) {
   if (!currentLevel) return false;
-  if (tx < 0 || ty < 0 || tx >= currentLevel.cols || ty >= currentLevel.rows) return true; // außerhalb = Wand
+
+  // out of bounds = solid
+  if (tx < 0 || ty < 0 || tx >= currentLevel.cols || ty >= currentLevel.rows) return true;
+
+  // Wenn Level eigene Solid-Logik hat (z.B. "6" dynamisch), nutze die
+  if (typeof currentLevel.isSolid === "function") {
+    return currentLevel.isSolid(tx, ty) === true;
+  }
+
+  // Fallback: altes wallGrid (nur "1")
   return wallGrid?.[ty]?.[tx] === true;
 }
 
 function rectIntersectsWall(x, y, w, h) {
-  // welche Tiles überlappt das Rechteck?
   const left = Math.floor(x / TILE);
   const right = Math.floor((x + w - 1) / TILE);
   const top = Math.floor(y / TILE);
@@ -203,7 +429,6 @@ function rectIntersectsWall(x, y, w, h) {
    GAME LOOP
    ========================= */
 function update() {
-  console.log("update läuft");
   if (!gameStarted || !currentLevel) return;
 
   let vx = 0, vy = 0;
@@ -212,34 +437,30 @@ function update() {
   if (keys.down)  vy += SPEED;
   if (keys.up)    vy -= SPEED;
 
-  // Bewegung + Kollision: erst X, dann Y
-  // kleinere Hitbox für Kollision (Sprite bleibt groß)
-const hitW = 40;
-const hitH = 60;
-const hitOX = (player.clientWidth  - hitW) / 2;
-const hitOY = (player.clientHeight - hitH) / 2;
+  const hitW = 40;
+  const hitH = 60;
+  const hitOX = (player.clientWidth  - hitW) / 2;
+  const hitOY = (player.clientHeight - hitH) / 2;
 
-function canMoveTo(nx, ny) {
-  return !rectIntersectsWall(
-    nx + hitOX,
-    ny + hitOY,
-    hitW,
-    hitH
-  );
-}
+  function canMoveTo(nx, ny) {
+    return !rectIntersectsWall(
+      nx + hitOX,
+      ny + hitOY,
+      hitW,
+      hitH
+    );
+  }
 
-// Bewegung + Kollision: erst X, dann Y
-if (vx !== 0) {
-  const nextX = px + vx;
-  if (canMoveTo(nextX, py)) px = nextX;
-}
+  if (vx !== 0) {
+    const nextX = px + vx;
+    if (canMoveTo(nextX, py)) px = nextX;
+  }
 
-if (vy !== 0) {
-  const nextY = py + vy;
-  if (canMoveTo(px, nextY)) py = nextY;
-}
+  if (vy !== 0) {
+    const nextY = py + vy;
+    if (canMoveTo(px, nextY)) py = nextY;
+  }
 
-  // Animation
   if (vx > 0)      setWalkClass("right");
   else if (vx < 0) setWalkClass("left");
   else if (vy < 0) setWalkClass("up");
@@ -248,17 +469,26 @@ if (vy !== 0) {
 
   player.style.transform = `translate(${px}px, ${py}px)`;
 
-  // Bat nur wenn im Level aktiv
+  // Tile-Change → Trigger check
+  const { tx: ptx, ty: pty } = getPlayerTilePos();
+  if (update._lastTx !== ptx || update._lastTy !== pty) {
+    update._lastTx = ptx;
+    update._lastTy = pty;
+
+    if (typeof currentLevel.checkTriggers === "function") {
+      currentLevel.checkTriggers(ptx, pty);
+    }
+  }
+
   if (currentLevel.enemies?.bat) {
     updateBatInfinity();
   }
 
-  // ✅ GANZ WICHTIG: Loop weiterlaufen lassen
   requestAnimationFrame(update);
 }
 
 /* =========================
-   BAT – ∞ BEWEGUNG (wie bei dir)
+   BAT – ∞ BEWEGUNG
    ========================= */
 function updateBatInfinity() {
   const a = (game.clientWidth - bat.clientWidth) / 2;
@@ -266,7 +496,6 @@ function updateBatInfinity() {
   const cx = game.clientWidth / 2 - bat.clientWidth / 2;
   const cy = game.clientHeight / 2 - bat.clientHeight / 2;
 
-  // t als globale Zeit
   if (typeof updateBatInfinity.t === "undefined") updateBatInfinity.t = 0;
   let t = updateBatInfinity.t;
 
