@@ -18,7 +18,7 @@ let bx = (game.clientWidth  - bat.clientWidth)  / 3;
 let by = (game.clientHeight - bat.clientHeight) / 3;
 
 /* Bewegungsgeschwindigkeit (px pro Frame) */
-const SPEED = 1;
+const SPEED = 4;
 
 /* Eingabestatus Player */
 const keys = { left:false, right:false, up:false, down:false };
