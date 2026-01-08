@@ -65,7 +65,11 @@ body {
   width: calc(var(--cols) * 32px);
   height: calc(var(--rows) * 32px);
   margin: 20px auto;
-  background: #333;
+    /* Hintergrundbild einfügen */
+  background-image: url('Intro lvl.png');  /* Pfad zu deinem Bild */
+  background-size: cover;      /* Bild auf Canvas skalieren */
+  background-position: center; /* zentriert das Bild */
+  background-repeat: no-repeat;
   display: grid;
   grid-template-columns: repeat(var(--cols), 32px);
   grid-template-rows: repeat(var(--rows), 32px);
@@ -134,4 +138,14 @@ body {
   background-repeat: no-repeat;
   background-size: 384px 256px;       /* Bat Sheet gesamt skaliert */
   background-position: 0 0;
+}
+
+/* Debug Wände  */
+#tiles .tile {
+  width: 32px;
+  height: 32px;
+}
+
+#tiles .tile.wall {
+  background: rgba(0, 140, 255, 0.35);
 }
