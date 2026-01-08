@@ -35,8 +35,8 @@ document.addEventListener("keydown", (e) => {
 let px = 0, py = 0;
 let bx = 0, by = 0;
 
-/* Bewegungsgeschwindigkeit */
-const SPEED = 1;
+/* Bewegungsgeschwindigkeit (px pro Frame) */
+const SPEED = 4;
 
 /* Eingabestatus Player */
 const keys = { left: false, right: false, up: false, down: false };
