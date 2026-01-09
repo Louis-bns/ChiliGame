@@ -18,45 +18,135 @@ let TILE = 32;
    TRIGGER MESSAGE (HUD)
    ========================= */
 function ensureMessageBox() {
-  let el = document.getElementById("level-message");
-  if (!el) {
-    el = document.createElement("div");
-    el.id = "level-message";
-
-    el.style.position = "fixed";
-    el.style.left = "50%";
-    el.style.top = "50%";
-    el.style.transform = "translate(-50%, -50%)";
-
-    el.style.padding = "28px 36px";
-    el.style.borderRadius = "16px";
-    el.style.background = "rgba(0, 0, 0, 0.85)";
-    el.style.color = "#fff";
-    el.style.fontFamily = "system-ui, Arial, sans-serif";
-    el.style.fontSize = "32px";
-    el.style.fontWeight = "600";
-    el.style.lineHeight = "1.3";
-    el.style.textAlign = "center";
-
-    el.style.maxWidth = "70vw";
-    el.style.boxShadow = "0 10px 40px rgba(0,0,0,0.6)";
-    el.style.zIndex = "99999";
-    el.style.display = "none";
-    el.style.pointerEvents = "none";
-
-    document.body.appendChild(el);
-  }
-  return el;
+  const container = document.getElementById("game");
+  let wrap = document.getElementById("msgWrap");
+  if (wrap) return wrap._textEl; // Text-Element zurückgeben
+ 
+  // Wrapper (Positionierung übernimmt showTempMessage)
+  wrap = document.createElement("div");
+  wrap.id = "msgWrap";
+  wrap.style.position = "absolute";
+  wrap.style.zIndex = "9999";
+  wrap.style.pointerEvents = "none";
+ 
+  // Blase
+  const bubble = document.createElement("div");
+  bubble.style.position = "relative";
+  bubble.style.background = "#fff";
+  bubble.style.color = "#111";
+ 
+  // Pixel-Rahmen + Pixel-Shadow
+  bubble.style.border = "4px solid #111";
+  bubble.style.boxShadow = "6px 6px 0 #000";
+  bubble.style.borderRadius = "0";
+ 
+  // Pixel-Schrift
+  bubble.style.fontFamily = '"Press Start 2P", monospace';
+  bubble.style.fontSize = "32px";
+  bubble.style.lineHeight = "1.6";
+ 
+  // Umbrüche: max Breite -> bricht automatisch nach Wörtern um
+  bubble.style.maxWidth = "600px";  // <- Umbrüche passieren durch Breite
+  bubble.style.padding = "14px 16px";
+  bubble.style.whiteSpace = "pre-wrap";
+  bubble.style.wordBreak = "normal";
+  bubble.style.overflowWrap = "break-word";
+ 
+  // Textnode (damit wir Tail separat halten können)
+  const textEl = document.createElement("div");
+  bubble.appendChild(textEl);
+ 
+  // Tail (Sprechblasen-"Zipfel") als 2 Layer (Rand + Innen)
+  const tailBorder = document.createElement("div");
+  tailBorder.style.position = "absolute";
+  tailBorder.style.left = "28px";
+  tailBorder.style.top = "100%";
+  tailBorder.style.width = "0";
+  tailBorder.style.height = "0";
+  tailBorder.style.borderLeft = "14px solid transparent";
+  tailBorder.style.borderRight = "14px solid transparent";
+  tailBorder.style.borderTop = "18px solid #111";
+ 
+  const tailInner = document.createElement("div");
+  tailInner.style.position = "absolute";
+  tailInner.style.left = "32px";
+  tailInner.style.top = "100%";
+  tailInner.style.width = "0";
+  tailInner.style.height = "0";
+  tailInner.style.borderLeft = "10px solid transparent";
+  tailInner.style.borderRight = "10px solid transparent";
+  tailInner.style.borderTop = "14px solid #fff";
+ 
+  bubble.appendChild(tailBorder);
+  bubble.appendChild(tailInner);
+ 
+  wrap.appendChild(bubble);
+  container.appendChild(wrap);
+ 
+  // Trick: wir geben das Text-Element zurück, aber behalten Zugriff auf wrap
+  textEl._wrap = wrap;
+  wrap._textEl = textEl;
+ 
+  // Default unsichtbar
+  wrap.style.display = "none";
+ 
+  return textEl;
 }
-
-function showTempMessage(text, ms = 2000) {
+ 
+ 
+function showTempMessage(text, ms = 2000, opts = {}) {
   const el = ensureMessageBox();
-  el.textContent = text;
-  el.style.display = "block";
-  clearTimeout(showTempMessage._t);
-  showTempMessage._t = setTimeout(() => {
-    el.style.display = "none";
-  }, ms);
+  const wrap = el._wrap;
+ 
+  const {
+    typewriter = false,
+    charDelay = 30,
+    x = "50%",
+    y = "50%",
+    center = true
+  } = opts;
+ 
+  // Positionierung
+  wrap.style.position = "absolute";
+  wrap.style.right = "auto";
+  wrap.style.bottom = "auto";
+  wrap.style.left = typeof x === "number" ? `${x}px` : x;
+  wrap.style.top  = typeof y === "number" ? `${y}px` : y;
+  wrap.style.transform = center ? "translate(-50%, -50%)" : "none";
+ 
+  wrap.style.display = "block";
+ 
+  // alte Timer stoppen
+  clearTimeout(showTempMessage._hideTimer);
+  if (showTempMessage._typeTimer) {
+    clearInterval(showTempMessage._typeTimer);
+    showTempMessage._typeTimer = null;
+  }
+ 
+  // 🔹 SOFORT anzeigen (ohne Typewriter)
+  if (!typewriter) {
+    el.textContent = text;
+    showTempMessage._hideTimer = setTimeout(() => {
+      wrap.style.display = "none"; // ✅ wrap, nicht el
+    }, ms);
+    return;
+  }
+ 
+  // 🔹 TYPEWRITER (integriert)
+  el.textContent = "";
+  let i = 0;
+ 
+  showTempMessage._typeTimer = setInterval(() => {
+    el.textContent += text[i++] ?? "";
+    if (i >= text.length) {
+      clearInterval(showTempMessage._typeTimer);
+      showTempMessage._typeTimer = null;
+ 
+      showTempMessage._hideTimer = setTimeout(() => {
+        wrap.style.display = "none"; // ✅ wrap, nicht el
+      }, ms);
+    }
+  }, Math.max(0, charDelay));
 }
 
 /* =========================
