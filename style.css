@@ -150,40 +150,22 @@ body {
   background: rgba(0, 140, 255, 0.35);
 }
 
-#granny {
-  position: absolute;
-  inset: 0;
-  z-index: 5;              /* über Hintergrund, unter Player (Player hat 10) */
-  pointer-events: none;
-}
-
-/* 8 Frames: 4 Spalten × 2 Reihen
-   Wir zeigen es im Tile-Format (32×32) */
 .tile8-anim {
   position: absolute;
-  width: 32px;
-  height: 32px;
-
+  width: 96px;
+  height: 128px;
   image-rendering: pixelated;
-  background-image: url("assets/Granny.png"); /* <-- dein PNG-Pfad */
+ 
+  background-image: url("assets/Granny.png");
   background-repeat: no-repeat;
-
-  /* 4*32 = 128px breit, 2*32 = 64px hoch */
-  background-size: 128px 64px;
-
-  animation: tile8frames 1s linear infinite;
+ 
+  /* 4 Frames × 96px, 2 Reihen × 128px */
+  background-size: 384px 256px;
+ 
+  /* feste Zeile (z. B. erste Reihe) */
+  background-position: 0 0;
+ 
+  /* 🔥 Animation läuft IMMER, ohne Stop */
+  animation: walk 0.7s steps(4) infinite;
 }
-
-/* 8 Frames: 0..3 in Reihe 1, 4..7 in Reihe 2 */
-@keyframes tile8frames {
-  0%    { background-position:   0px   0px; }
-  12.5% { background-position: -32px   0px; }
-  25%   { background-position: -64px   0px; }
-  37.5% { background-position: -96px   0px; }
-
-  50%   { background-position:   0px -32px; }
-  62.5% { background-position: -32px -32px; }
-  75%   { background-position: -64px -32px; }
-  87.5% { background-position: -96px -32px; }
-  100%  { background-position:   0px   0px; }
-}
+ 

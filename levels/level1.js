@@ -29,14 +29,14 @@
       "100001000000000000000000010000000000000000001",
       "100001000000000000000000010000000000000000001",
       "100001000000000000000000010000000000000000001",
-      "100001000011111111111111110000000000000000001",
+      "100001BBBB11111111111111110000000000000000001",
       "100001000010000000000000000000000000000000001",
-      "100001000010000000000000000000000000000000001",
+      "100001AAAA10000000000000000000000000000000001",
       "100001000010000000000000000000000000000000001",
       "111111000011111110000000000000000000000000001",
-      "100000000000000010000000000000000000000000001",
-      "100000000000000010000000000000000000000000001",
-      "100000000000000010000000000000000000000000001",
+      "100000000000099910000000000000000000000000001",
+      "100000000000099910000000000000000000000000001",
+      "100000000000099910000000000000000000000000001",
       "100000000000000010000000000000000000000000001",
       "100000000000000010000000000000000000000000001",
       "100000000000000010000111111111100000000000001",
@@ -55,12 +55,12 @@
       "100000077700000000001000000000000000010000001",
       "100000000000000000001000000000000000010000001",
       "100000000000000000001000000000000000010000001",
-      "100000000000000000001000000000000000010000001",
-      "105555550000000000001000000000000000010000001",
-      "100000050000000000001000000000000000010000001",
-      "1000800500000000000001111111111111111110000001",
-      "100000050000000000000000400000000000000000001",
-      "105555550000000000000000400000000000000000001",
+      "155555000000000000001000000000000000010000001",
+      "155555000000000000001000000000000000010000001",
+      "185555000000000000001000000000000000010000001",
+      "155555000000000000001111111111111111110000001",
+      "155555000000000000000000400000000000000000001",
+      "100000000000000000000000400000000000000000001",
       "100000000000000000000000400000000000000000001",
       "111111111111111111111111111111111111111111111",
       "111111111111111111111111111111111111111111111"
@@ -69,8 +69,13 @@
     _spentTriggers: new Set(),
 
     flags: {
-      talkedToOma: false
+      talkedToOma: false,
+      tookKey: false
     },
+
+    
+      
+  
 
     getTile(tx, ty) {
       if (tx < 0 || ty < 0 || tx >= this.cols || ty >= this.rows) return "1";
@@ -82,6 +87,10 @@
       // ✅ WICHTIG: Tile 7 soll nur angezeigt/existieren, solange NICHT mit Oma (5) interagiert wurde
       // Sobald talkedToOma true ist, behandeln wir 7 wie 0 (frei/unsichtbar/kein Trigger).
       if (t === "7" && this.flags.talkedToOma === true) return "0";
+
+      
+
+      if (t === "A" && this.flags.tookKey === true) return "0";
 
       return t;
     },
@@ -95,13 +104,16 @@
       // "6" ist Tür/Blockade: erst nach Oma-Gespräch passierbar
       if (t === "6") return this.flags.talkedToOma !== true;
 
+      // "B" ist Tür/Blockade: erst nach Schlüsselh passierbar
+      if (t === "B") return this.flags.tookKey !== true;
+
       // alles andere frei
       return false;
     },
 
     checkTriggers(playerTx, playerTy) {
       const t = this.getTile(playerTx, playerTy);
-      if (t !== "3" && t !== "4" && t !== "7") return;
+      if (t !== "3" && t !== "4" && t !== "7" && t !== "A") return;
 
       const key = `${t}:${playerTx},${playerTy}`;
       if (this._spentTriggers.has(key)) return;
@@ -109,20 +121,26 @@
       this._spentTriggers.add(key);
 
       if (t === "3") {
-        showTempMessage("Komm in die Küche, die Oma brauch dich mal!", 3000);
+        showTempMessage("Komm in die Küche, die Oma brauch dich mal!", 3000,{ typewriter: true, charDelay: 26 });
       }
 
       if (t === "4") {
         showTempMessage(
           "Interagiere mit Hilfe von Leertaste mit deiner Umgebung, probiere gleich mal mit Oma zu reden.",
-          3000
+          3000,{ typewriter: true, charDelay: 26 }
         );
       }
 
       // ✅ Trigger 7: Meldung nur solange Oma noch nicht gesprochen wurde
       if (t === "7") {
         if (!this.flags.talkedToOma) {
-          showTempMessage("Rede erst mit Oma!", 3000);
+          showTempMessage("Rede erst mit Oma!", 3000,{ typewriter: true, charDelay: 26 });
+        }
+      }
+// TrigerA: melung solange schlüssel nicht genommen
+      if (t === "A") {
+        if (!this.flags.tookKey) {
+          showTempMessage("vergiss die schlüssel nicht!", 3000,{ typewriter: true, charDelay: 26 });
         }
       }
     },
@@ -135,21 +153,46 @@
       "5": ({ level, showTempMessage }) => {
         if (!level.flags.talkedToOma) {
           level.flags.talkedToOma = true;
-          showTempMessage("Die Chili Zutaten fehlen, geh los", 2500);
+          showTempMessage("Die Chili Zutaten fehlen, geh los", 2500,{ typewriter: true, charDelay: 26 });
         } else {
-          showTempMessage("Oma: Viel Erfolg da draußen!", 2000);
+          showTempMessage("Oma: Viel Erfolg da draußen!", 2000,{ typewriter: true, charDelay: 26 });
+        }
+      },
+
+        // Tile 9: Schlüssel -> schaltet den "B"-Block frei + lässt "A" verschwinden (über getTile)
+      "9": ({ level, showTempMessage }) => {
+        if (!level.flags.tookKey) {
+          level.flags.tookKey = true;
+          showTempMessage("Schlüssel gefunden", 2500,{ typewriter: true, charDelay: 26 });
+        } else {
+          showTempMessage("Schublade ist leer", 2000,{ typewriter: true, charDelay: 26 });
         }
       },
 
       // Tile 6: Blockade/Tür
       "6": ({ level, showTempMessage }) => {
         if (!level.flags.talkedToOma) {
-          showTempMessage("Rede erst mit Oma!", 2000);
+          showTempMessage("Rede erst mit Oma!", 2000,{ typewriter: true, charDelay: 26 });
         } else {
           showTempMessage("Du kannst jetzt hier durch.", 1500);
         }
-      }
-    }
+      },
+
+     // Tile 6: Blockade/Tür
+      "B": ({ level, showTempMessage }) => {
+        if (!level.flags.tookKey) {
+          showTempMessage("Vergiss den Schlüssel aus der Schublade nicht", 2000,{ typewriter: true, charDelay: 26 });
+        } else {
+          showTempMessage("Du kannst jetzt hier durch.", 1500);
+        }
+      },
+
+
+
+
+
+
+    },
 
     // Optionaler Fallback:
     // onInteract: ({ tile, showTempMessage }) => {
