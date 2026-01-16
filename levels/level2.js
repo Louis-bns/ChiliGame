@@ -1,5 +1,7 @@
 // levels/level2.js
 (() => {
+
+  
   // =========================================================
   // LEVEL 2 – Platzhalter-Grid (du passt es später an)
   // 0 = begehbar
@@ -17,9 +19,7 @@
   // 4,5,6 = Sicherungskästen
   // =========================================================
 
-
   const TILE = 32;
-  
 
   // Hilfsfunktion: char an Position setzen
   function setChar(grid, x, y, ch) {
@@ -98,6 +98,8 @@
   function msg(showTempMessage, text) {
     showTempMessage(text, 2200, { typewriter: false, x: "50%", y: "15%", center: true });
   }
+
+  
 
   function tileToItem(tile) {
     if (tile === "I") return "boots";
