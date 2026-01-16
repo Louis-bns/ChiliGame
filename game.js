@@ -273,6 +273,33 @@ function handleInteract() {
 /* =========================
    WALL COLLISION
    ========================= */
+function loadLevel(level) {
+  // alte Layer löschen
+  const decor = document.getElementById("decor");
+  if (decor) decor.innerHTML = "";
+  const tiles = document.getElementById("tiles");
+  if (tiles) tiles.innerHTML = "";
+
+  // ✅ Level klonen
+  currentLevel = {
+    ...level,
+    walls: level.walls.map(r => ("" + r)),
+    flags: level.flags ? structuredClone(level.flags) : undefined,
+    _spentTriggers: level._spentTriggers ? new Set() : undefined
+  };
+  level = currentLevel;
+
+  TILE = level.tileSize;
+
+  // ✅ HIER Hintergrund setzen (nach dem Clone!)
+  if (level.background) {
+    game.style.backgroundImage = `url('${level.background}')`;
+  } else {
+    game.style.backgroundImage = "none";
+  }
+
+
+  TILE = level.tileSize;
 function isWallTile(tx, ty) {
   if (!currentLevel) return false;
   if (tx < 0 || ty < 0 || tx >= currentLevel.cols || ty >= currentLevel.rows) return true;
@@ -321,6 +348,22 @@ function getEnemyCfg(level, type) {
   };
 }
 
+  // ✅ Spawn-Char: Standard "2", Level2 nutzt z.B. "Z"
+  const spawnChar = level.spawnChar || "2";
+
+  // Spawn-Marker suchen
+  let spawnFound = false;
+  for (let y = 0; y < level.walls.length; y++) {
+    const x = level.walls[y].indexOf(spawnChar);
+    if (x !== -1) {
+      level.spawn = { tx: x, ty: y };
+      spawnFound = true;
+      break;
+    }
+  }
+
+  // Spawnmarker optisch entfernen (spawnChar -> 0)
+  level.walls = level.walls.map(r => r.split(spawnChar).join("0"));
 /* =========================
    ENEMIES (MULTI)
    ========================= */
@@ -553,6 +596,13 @@ function update() {
     }
   }
 
+  const tileHere = getTileAt(currentLevel, ptx, pty);
+  if (tileHere === "Z" && window.LEVEL2 && currentLevel !== window.LEVEL2) {
+    loadLevel(window.LEVEL2);
+  }
+
+  if (currentLevel.enemies?.bat) {
+    updateBatInfinity();
   // Enemies bewegen
   for (const e of enemies) updateEnemy(e);
 
