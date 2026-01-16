@@ -81,9 +81,6 @@ body {
   width: calc(var(--cols) * 32px);
   height: calc(var(--rows) * 32px);
   margin: 20px auto;
-    /* Hintergrundbild einfügen */
-  background-size: cover;      /* Bild auf Canvas skalieren */
-  background-position: center; /* zentriert das Bild */
 
   background-image: url('assets/Intro lvl.png');
   background-size: cover;

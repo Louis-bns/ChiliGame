@@ -1,5 +1,7 @@
 // levels/level2.js
 (() => {
+
+  
   // =========================================================
   // LEVEL 2 – Platzhalter-Grid (du passt es später an)
   // 0 = begehbar
@@ -97,6 +99,8 @@
     showTempMessage(text, 2200, { typewriter: false, x: "50%", y: "15%", center: true });
   }
 
+  
+
   function tileToItem(tile) {
     if (tile === "I") return "boots";
     if (tile === "2") return "hay";
@@ -124,7 +128,7 @@
     background: "assets/LEVEL2.png",
 
     // Wände sichtbar
-    debugWalls: true,
+    renderWalls: true,
 
     // Spawnchar für Level2 ist "Z"
     spawnChar: "Z",

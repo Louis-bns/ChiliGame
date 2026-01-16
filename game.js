@@ -11,7 +11,7 @@ let gameStarted = false;
    LEVEL STATE
    ========================= */
 let currentLevel = null;
-let wallGrid = null;
+let wallGrid = null; // 2D boolean [row][col]
 let TILE = 32;
 
 /* =========================
@@ -27,9 +27,8 @@ const DEFAULT_SCALES = { wolf: 4, bat: 1 };
 
 // Enemy Hitboxen (fair; ggf. anpassen)
 // Hitboxen in "Sprite-Pixeln" (unskaliert), werden in getEnemyHitRect mit scale multipliziert
-const BAT_HIT_BASE  = { w: 70, h: 70, ox: 13, oy: 28 }; // Bat: Element 96x128
-const WOLF_HIT_BASE = { w: 56, h: 56, ox: 4,  oy: 4  }; // Wolf: Element 64x64
-
+const BAT_HIT_BASE = { w: 70, h: 70, ox: 13, oy: 28 }; // Bat: Element 96x128
+const WOLF_HIT_BASE = { w: 56, h: 56, ox: 4, oy: 4 };  // Wolf: Element 64x64
 
 // Spawn Schutz
 let SAFE_UNTIL = 0;
@@ -115,7 +114,7 @@ function showTempMessage(text, ms = 2000, opts = {}) {
 
   wrap.style.position = "absolute";
   wrap.style.left = typeof x === "number" ? `${x}px` : x;
-  wrap.style.top  = typeof y === "number" ? `${y}px` : y;
+  wrap.style.top = typeof y === "number" ? `${y}px` : y;
   wrap.style.transform = center ? "translate(-50%, -50%)" : "none";
   wrap.style.display = "block";
 
@@ -173,7 +172,6 @@ function getEnemyHitRect(e) {
     h: hb.h * s
   };
 }
-
 
 function setWalkClass(el, dir) {
   el.classList.remove("walk-left", "walk-right", "walk-up", "walk-down");
@@ -273,33 +271,6 @@ function handleInteract() {
 /* =========================
    WALL COLLISION
    ========================= */
-function loadLevel(level) {
-  // alte Layer löschen
-  const decor = document.getElementById("decor");
-  if (decor) decor.innerHTML = "";
-  const tiles = document.getElementById("tiles");
-  if (tiles) tiles.innerHTML = "";
-
-  // ✅ Level klonen
-  currentLevel = {
-    ...level,
-    walls: level.walls.map(r => ("" + r)),
-    flags: level.flags ? structuredClone(level.flags) : undefined,
-    _spentTriggers: level._spentTriggers ? new Set() : undefined
-  };
-  level = currentLevel;
-
-  TILE = level.tileSize;
-
-  // ✅ HIER Hintergrund setzen (nach dem Clone!)
-  if (level.background) {
-    game.style.backgroundImage = `url('${level.background}')`;
-  } else {
-    game.style.backgroundImage = "none";
-  }
-
-
-  TILE = level.tileSize;
 function isWallTile(tx, ty) {
   if (!currentLevel) return false;
   if (tx < 0 || ty < 0 || tx >= currentLevel.cols || ty >= currentLevel.rows) return true;
@@ -348,22 +319,6 @@ function getEnemyCfg(level, type) {
   };
 }
 
-  // ✅ Spawn-Char: Standard "2", Level2 nutzt z.B. "Z"
-  const spawnChar = level.spawnChar || "2";
-
-  // Spawn-Marker suchen
-  let spawnFound = false;
-  for (let y = 0; y < level.walls.length; y++) {
-    const x = level.walls[y].indexOf(spawnChar);
-    if (x !== -1) {
-      level.spawn = { tx: x, ty: y };
-      spawnFound = true;
-      break;
-    }
-  }
-
-  // Spawnmarker optisch entfernen (spawnChar -> 0)
-  level.walls = level.walls.map(r => r.split(spawnChar).join("0"));
 /* =========================
    ENEMIES (MULTI)
    ========================= */
@@ -395,8 +350,6 @@ function applyEnemyTransform(e) {
   e.el.style.transform = `translate(${e.x + xFix}px, ${e.y}px) scale(${flip * s}, ${s})`;
 }
 
-
-
 function spawnEnemy(type, tx, ty) {
   const tpl = type === "wolf" ? wolfTpl : batTpl;
   const el = tpl.cloneNode(false);
@@ -415,9 +368,9 @@ function spawnEnemy(type, tx, ty) {
     homeX: x,
     homeY: y,
     t: Math.random() * Math.PI * 2,
-    dir: 1,       // 1 rechts, -1 links (für patrol + spiegel)
-    startX: x,     // patrol start
-    maxX: x,       // patrol end
+    dir: 1,
+    startX: x,
+    maxX: x,
     cfg: getEnemyCfg(currentLevel, type),
   };
 
@@ -442,7 +395,7 @@ function updateEnemyInfinity(e) {
   const dy = ny - e.y;
 
   if (Math.abs(dx) > Math.abs(dy)) {
-    e.dir = dx > 0 ? 1 : -1; // für spiegeln beim Wolf
+    e.dir = dx > 0 ? 1 : -1;
     setWalkClass(e.el, dx > 0 ? "right" : "left");
   } else {
     setWalkClass(e.el, dy > 0 ? "down" : "up");
@@ -491,8 +444,38 @@ function renderTile8Sprites(level) {
         const el = document.createElement("div");
         el.className = "tile8-anim";
         el.style.left = (tx * TILE) + "px";
-        el.style.top  = (ty * TILE) + "px";
+        el.style.top = (ty * TILE) + "px";
         decor.appendChild(el);
+      }
+    }
+  }
+}
+
+/* =========================
+   DEBUG WALLS (per level)
+   ========================= */
+function renderDebugWalls(level) {
+  let tiles = document.getElementById("tiles");
+  if (!tiles) {
+    tiles = document.createElement("div");
+    tiles.id = "tiles";
+    game.insertBefore(tiles, player);
+  }
+  tiles.innerHTML = "";
+
+  if (!level?.renderWalls) return;
+
+  for (let ty = 0; ty < level.rows; ty++) {
+    for (let tx = 0; tx < level.cols; tx++) {
+      if (wallGrid?.[ty]?.[tx]) {
+        const el = document.createElement("div");
+        el.className = "tile wall";
+        el.style.position = "absolute";
+        el.style.left = (tx * TILE) + "px";
+        el.style.top = (ty * TILE) + "px";
+        el.style.width = TILE + "px";
+        el.style.height = TILE + "px";
+        tiles.appendChild(el);
       }
     }
   }
@@ -502,18 +485,44 @@ function renderTile8Sprites(level) {
    LEVEL LOADER
    ========================= */
 function loadLevel(level) {
-  currentLevel = level;
+  // alte Layer löschen (falls vorhanden)
+  const decor = document.getElementById("decor");
+  if (decor) decor.innerHTML = "";
+  const tiles = document.getElementById("tiles");
+  if (tiles) tiles.innerHTML = "";
+
+  // Level klonen (Original nicht mutieren)
+  currentLevel = {
+    ...level,
+    walls: level.walls.map(r => ("" + r)),
+    flags: level.flags ? structuredClone(level.flags) : undefined,
+    _spentTriggers: level._spentTriggers ? new Set(level._spentTriggers) : undefined
+  };
+  level = currentLevel;
+
   TILE = level.tileSize;
 
+  // rows/cols ableiten (falls nicht gesetzt)
   level.rows = level.walls.length;
-  level.cols = level.walls[0].length;
+  level.cols = level.walls[0]?.length ?? 0;
 
-  wallGrid = level.walls.map((rowStr) => [...rowStr].map((c) => c === "1"));
+  // Background pro Level (optional)
+  if (level.background) {
+    const bg = encodeURI(level.background);
+    game.style.backgroundImage = `url("${bg}")`;
+    game.style.backgroundSize = "cover";
+    game.style.backgroundPosition = "center";
+    game.style.backgroundRepeat = "no-repeat";
+  }
+  // kein else: wenn background fehlt, CSS-Background beibehalten
 
-  // Player spawn "2"
+  // Spawn-Char pro Level (optional)
+  const spawnChar = level.spawnChar || "2";
+
+  // Spawn suchen (Marker, sonst fallback)
   let spawn = null;
   for (let y = 0; y < level.walls.length; y++) {
-    const x = level.walls[y].indexOf("2");
+    const x = level.walls[y].indexOf(spawnChar);
     if (x !== -1) { spawn = { tx: x, ty: y }; break; }
   }
   if (!spawn) spawn = level.spawn;
@@ -521,21 +530,29 @@ function loadLevel(level) {
   // Enemies aus Markern
   clearEnemies();
   const wolfSpawns = level.enemies?.wolf ? findAllMarkers(level, "W") : [];
-  const batSpawns  = level.enemies?.bat  ? findAllMarkers(level, "F") : [];
+  const batSpawns = level.enemies?.bat ? findAllMarkers(level, "F") : [];
 
-  // Marker entfernen
+  // Marker entfernen (spawn + enemy marker -> "0")
   level.walls = level.walls.map(r =>
-    r.replaceAll("2", "0").replaceAll("W", "0").replaceAll("F", "0")
+    r.replaceAll(spawnChar, "0").replaceAll("W", "0").replaceAll("F", "0")
   );
+
+  // wallGrid NACH cleanup bauen
+  wallGrid = level.walls.map(rowStr => [...rowStr].map(c => c === "1"));
+
+  // Debug-Walls pro Level
+  renderDebugWalls(level);
 
   renderTile8Sprites(level);
 
+  // Player setzen
   px = spawn.tx * TILE + (TILE - player.clientWidth) / 2;
   py = spawn.ty * TILE + (TILE - player.clientHeight) / 2;
   player.style.transform = `translate(${px}px, ${py}px)`;
 
+  // Enemies spawnen
   for (const s of wolfSpawns) spawnEnemy("wolf", s.tx, s.ty);
-  for (const s of batSpawns)  spawnEnemy("bat",  s.tx, s.ty);
+  for (const s of batSpawns) spawnEnemy("bat", s.tx, s.ty);
 
   SAFE_UNTIL = performance.now() + 1200;
 
@@ -558,9 +575,9 @@ function update() {
   // Movement
   let vx = 0, vy = 0;
   if (keys.right) vx += SPEED;
-  if (keys.left)  vx -= SPEED;
-  if (keys.down)  vy += SPEED;
-  if (keys.up)    vy -= SPEED;
+  if (keys.left) vx -= SPEED;
+  if (keys.down) vy += SPEED;
+  if (keys.up) vy -= SPEED;
 
   const hitOX = (player.clientWidth - PLAYER_HIT.w) / 2;
   const hitOY = (player.clientHeight - PLAYER_HIT.h) / 2;
@@ -596,13 +613,14 @@ function update() {
     }
   }
 
+  // Levelwechsel über Tile "Z" (optional)
   const tileHere = getTileAt(currentLevel, ptx, pty);
   if (tileHere === "Z" && window.LEVEL2 && currentLevel !== window.LEVEL2) {
     loadLevel(window.LEVEL2);
+    requestAnimationFrame(update);
+    return;
   }
 
-  if (currentLevel.enemies?.bat) {
-    updateBatInfinity();
   // Enemies bewegen
   for (const e of enemies) updateEnemy(e);
 
