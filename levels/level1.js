@@ -2,14 +2,19 @@
 // 1 = Wand (Kollision, unsichtbar)
 // 0 = frei
 // 3/4 = Trigger (unsichtbar, nicht solid, nur 1x aktiv)
-// 5..9 = Beispiel: Interaktionen per Leertaste (einfach erweiterbar)
+// 5..9 = Beispiel: Interaktionen per Leertaste 
+
+
 
 (function () {
+  
   window.LEVEL1 = {
     id: "level1",
     cols: 45,
     rows: 45,
     tileSize: 32,
+
+    background: "assets/Intro lvl.png",
 
     spawn: { tx: 18, ty: 16 },
 
@@ -22,7 +27,7 @@
     walls: [
       "111111111111111111111111111111111111111111111",
       "100000000000000000001000010000000000000000001",
-      "100000000000000000001000010000000000000000001",
+      "100000000000000000001ZZZZ10000000000000000001",
       "100000000000000000001000010000000000000000001",
       "100000000000000000001000010000000000000000001",
       "100001111111111111111000010000000000000000001",
@@ -84,8 +89,8 @@
 
       let t = row[tx] ?? "1";
 
-      // ✅ WICHTIG: Tile 7 soll nur angezeigt/existieren, solange NICHT mit Oma (5) interagiert wurde
-      // Sobald talkedToOma true ist, behandeln wir 7 wie 0 (frei/unsichtbar/kein Trigger).
+      // Tile 7 soll nur angezeigt/existieren, solange NICHT mit Oma (5) interagiert wurde
+      // Sobald talkedToOma true ist-> 7 wie 0
       if (t === "7" && this.flags.talkedToOma === true) return "0";
 
       
@@ -101,10 +106,10 @@
       // normale Wand
       if (t === "1") return true;
 
-      // "6" ist Tür/Blockade: erst nach Oma-Gespräch passierbar
+      // "6" ist Blockade: erst nach Oma-Gespräch passierbar
       if (t === "6") return this.flags.talkedToOma !== true;
 
-      // "B" ist Tür/Blockade: erst nach Schlüsselh passierbar
+      // "B" ist Blockade: erst nach Schlüsselh passierbar
       if (t === "B") return this.flags.tookKey !== true;
 
       // alles andere frei
@@ -131,13 +136,13 @@
         );
       }
 
-      // ✅ Trigger 7: Meldung nur solange Oma noch nicht gesprochen wurde
+      //  7: Meldung nur solange Oma noch nicht gesprochen wurde
       if (t === "7") {
         if (!this.flags.talkedToOma) {
           showTempMessage("Rede erst mit Oma!", 3000,{ typewriter: true, charDelay: 26 });
         }
       }
-// TrigerA: melung solange schlüssel nicht genommen
+// TrigerA: meldung solange schlüssel nicht genommen
       if (t === "A") {
         if (!this.flags.tookKey) {
           showTempMessage("vergiss die schlüssel nicht!", 3000,{ typewriter: true, charDelay: 26 });
@@ -149,7 +154,7 @@
        INTERACTIONS (SPACE)
        =================================== */
     interactions: {
-      // Tile 5: Oma -> schaltet den "6"-Block frei + lässt "7" verschwinden (über getTile)
+      // Tile 5: Oma -> schaltet den "6"-Block frei + lässt "7" verschwinden 
       "5": ({ level, showTempMessage }) => {
         if (!level.flags.talkedToOma) {
           level.flags.talkedToOma = true;
@@ -159,7 +164,7 @@
         }
       },
 
-        // Tile 9: Schlüssel -> schaltet den "B"-Block frei + lässt "A" verschwinden (über getTile)
+        // Tile 9: Schlüssel -> schaltet den "B"-Block frei + lässt "A" verschwinden 
       "9": ({ level, showTempMessage }) => {
         if (!level.flags.tookKey) {
           level.flags.tookKey = true;
@@ -169,7 +174,7 @@
         }
       },
 
-      // Tile 6: Blockade/Tür
+      // Tile 6: Blockade
       "6": ({ level, showTempMessage }) => {
         if (!level.flags.talkedToOma) {
           showTempMessage("Rede erst mit Oma!", 2000,{ typewriter: true, charDelay: 26 });
@@ -178,7 +183,7 @@
         }
       },
 
-     // Tile 6: Blockade/Tür
+     // Tile 6: Blockade
       "B": ({ level, showTempMessage }) => {
         if (!level.flags.tookKey) {
           showTempMessage("Vergiss den Schlüssel aus der Schublade nicht", 2000,{ typewriter: true, charDelay: 26 });
@@ -194,9 +199,5 @@
 
     },
 
-    // Optionaler Fallback:
-    // onInteract: ({ tile, showTempMessage }) => {
-    //   if (tile !== "0") showTempMessage(`Nichts definiert für Tile ${tile}`, 2000);
-    // }
   };
 })();
