@@ -22,17 +22,42 @@
       },
       bat: {
         mode: "infinity",
-        a: 800,
-        b: 600,
-        speed: 0.07,
-        scale: 0.5
+        a: 8000,
+        b: 5000,
+        speed: 0.01,
+        scale: 0.9
       }
+    },
+
+    // NEU: Kuh-Konfig (Deko, ohne Hitbox), wird auf jedem "K" Tile gerendert
+cowConfig: {
+  enabled: true,
+  sprite: "assets/Cow.png",
+
+  // wie Koch/Bat/Granny
+  frameW: 96,
+  frameH: 128,
+
+  // optional: falls du es explizit willst (sonst wird es automatisch berechnet)
+  sheetW: 384,
+  sheetH: 256,
+
+  animDur: 0.8,
+  scale: 1,          // wenn sie exakt so groß wie Bat sein soll -> 1
+  ox: 0,
+  oy: 0,
+  behindPlayer: true
+},
+
+    // Toggle wie bei enemies
+    cows: {
+      cow: true
     },
 
     // ACHTUNG: In deinem game.js ist "F" Bat-Spawnmarker.
     // Wenn du "F" als Förderband im Level nutzen willst, dann muss bat:false bleiben.
     enemies: {
-      bat: false,
+      bat: true,
       wolf: false,
     },
 
@@ -57,12 +82,12 @@
       "000000000100001000000000000000010001100000000",
       "000000000100001000000000000000010001000000000",
       "001111111100001111111000011111110001111111100",
-      "0010000000000000000011111100AAA0000000CCC0100",
-      "0010000000000000000000000000AAA000000CCCC100",
-      "0010000000000000000000000000AAA0000000CCC0100",
-      "001000000000000000000000000000000000000000100",
-      "001000000000000000000000000000000000000000100",
-      "001000000000000000001000001000000000000000100",
+      "0010000001k0000000001111110000000000000000100",
+      "0010000001k0000000000000000000000000000000100",
+      "0010000001k0000000000000000000000000000000100",
+      "001000K001k0000000000000000000000000000000100",
+      "0011111111k0000000000000000000000000000000100",
+      "001kkkkkkkk0000000001000001000000000000000100",
       "001000000000001111111000001111110001111111100",
       "001000000000001000000000000000000000BBB000100",
       "001000000000001000000000000000000000BBB000100",
@@ -264,8 +289,6 @@
       }
       return;
     }
-
-    // Phase 3+: 4/5/6 nicht mehr möglich
   }
 
   function handleItemInteract(ctx, tile) {
