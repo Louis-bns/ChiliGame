@@ -171,6 +171,41 @@ body {
   animation: wolf-walk 0.7s steps(4) infinite;
 }
 
+.cow {
+  position: absolute;
+  image-rendering: pixelated;
+  background-repeat: no-repeat;
+
+  /* Frame-Größe (wie Koch/Bat/Granny) */
+  width: var(--cowFrameW, 96px);
+  height: var(--cowFrameH, 128px);
+
+  background-image: var(--cowSprite, url("assets/Cow.png"));
+
+  /* WICHTIG: wir zwingen das Sheet im Spiel auf 4x2 Frames (384x256) */
+  background-size: var(--cowSheetW, 384px) var(--cowSheetH, 256px);
+  background-position: 0 0;
+}
+
+/* 8 Frames: 4x2 */
+.cow.anim {
+  animation: cowAnim 3s steps(1) infinite ;
+}
+
+@keyframes cowAnim {
+  0%    { background-position: 0 0; }
+  12.5% { background-position: calc(-1 * var(--cowFrameW, 96px)) 0; }
+  25%   { background-position: calc(-2 * var(--cowFrameW, 96px)) 0; }
+  37.5% { background-position: calc(-3 * var(--cowFrameW, 96px)) 0; }
+
+  50%   { background-position: 0 calc(-1 * var(--cowFrameH, 128px)); }
+  62.5% { background-position: calc(-1 * var(--cowFrameW, 96px)) calc(-1 * var(--cowFrameH, 128px)); }
+  75%   { background-position: calc(-2 * var(--cowFrameW, 96px)) calc(-1 * var(--cowFrameH, 128px)); }
+  87.5% { background-position: calc(-3 * var(--cowFrameW, 96px)) calc(-1 * var(--cowFrameH, 128px)); }
+  100%  { background-position: 0 0; }
+}
+
+
 /* Granny Tile 8 */
 .tile8-anim {
   position: absolute;
