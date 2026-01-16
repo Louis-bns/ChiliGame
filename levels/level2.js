@@ -1,147 +1,102 @@
-// levels/level2.js
-(() => {
+(function () {
+  window.LEVEL2 = {
+    id: "level2",
+    cols: 45,
+    rows: 45,
+    tileSize: 32,
 
-  
-  // =========================================================
-  // LEVEL 2 – Platzhalter-Grid (du passt es später an)
-  // 0 = begehbar
-  // 1 = Wand (sichtbar wenn debugWalls=true)
-  //
-  // Spezial-Tiles :
-  // Z = Spawn (Level2 spawnChar)
-  // 8 = Event-Tile ("ohne hack nicht weiter") – in Phase 6 deaktiviert
-  // A,B,C = Computer
-  // H = Container (statt C)
-  // F = Förderband
-  // M = Maschine
-  // K = Kuh
-  // I,2,3 = Items
-  // 4,5,6 = Sicherungskästen
-  // =========================================================
-
-  const TILE = 32;
-
-  // Hilfsfunktion: char an Position setzen
-  function setChar(grid, x, y, ch) {
-    const row = grid[y];
-    grid[y] = row.substring(0, x) + ch + row.substring(x + 1);
-  }
-
-  const walls = [
-    "000000000000000000000000000000000000000000000",
-    "000000000000000000000000000000000000000000000",
-    "000000000000000000000000000000000000000000000",
-    "000000000000000000000000000000000000000000000",
-    "000000000000000000000000000000000000000000000",
-    "000000000000000000000000000000000000000000000",
-    "000000000000000000000000000000000000000000000",
-    "000000000000000000000000000000000000000000000",
-    "000000000000000000000000000000000000000000000",
-    "000000000000000000000000000000000000000000000",
-    "000000000000000000000000000000000000000000000",
-    "000000000000000000000000000000000000000000000",
-    "000000000000000000000000000000000000000000000",
-    "000000000000000000000000000000000000000000000",
-    "000000000000000000000000000000000000000000000",
-    "000000000000000000000000000000000000000000000",
-    "000000000000000000000000000000000000000000000",
-    "001111111100001111111000011111110001111111100",
-    "001000000000000000001111110000000000000000100",
-    "001000000000000000000000000000000000000000100",
-    "001000000000000000000000000000000000000000100",
-    "001000000000000000000000000000000000000000100",
-    "001000000000000000000000000000000000000000100",
-    "001000000000000000001000001000000000000000100",
-    "001000000000001111111000001111110001111111100",
-    "001000000000001000000000000000000000000000100",
-    "001000000000001000000000000000000000000000100",
-    "001000000000001000000000000000000000000000100",
-    "001000000000001000000000000000000000000000100",
-    "001000000000001000000000000000000000000000100",
-    "001000000000001000000000000000000000000000100",
-    "001111111100001111110000000000000000000001100",
-    "001000000000000000000000000000000000000000100",
-    "001000000000000000000000000000000000000000100",
-    "001000000000000000000000000000000000000000100",
-    "001000000000000000000000000000000000000000000",
-    "001000000000000000000000000000000000000000000",
-    "001000000000000000000000000000000000000000111",
-    "111111111111111111111000011111111111111111111",
-    "100000000000000000000000000000000000000000001",
-    "100000000000000000000000000000000000000000001",
-    "100000000000000000000000000000000000000000001",
-    "1000000000000000000000000Z0000000000000000001",
-    "100000000000000000000000000000000000000000001",
-    "111111111111111111111111111111111111111111111",
-  ];
-
-  // Spawn setzen
-  
-
-  // =========================================================
-  // PHASEN-LOGIK
-  // =========================================================
-  let phase = 1;
-
-  // Phase 2: Sicherungen-Reihenfolge 4 -> 5 -> 6
-  let fuseStep = 0; // 0=noch nicht begonnen, 1=4 ok, 2=5 ok, 3=6 ok -> phase3
-
-  // Phase 4: Inventar-System
-  // itemHeld: null | "boots" | "hay" | "carrots"
-  let itemHeld = null;
-  // "double tap" auf I/2/3: erst Nachfrage, beim direkten zweiten Mal: nehmen
-  let pendingPickup = null; // "I"|"2"|"3"|null
-
-  // Phase 5: System-Start Reihenfolge A -> B -> C
-  let sysStep = 0; // 0=noch nicht begonnen, 1=A ok, 2=B ok, 3=C ok -> phase6
-
-  function msg(showTempMessage, text) {
-    showTempMessage(text, 2200, { typewriter: false, x: "50%", y: "15%", center: true });
-  }
-
-  
-
-  function tileToItem(tile) {
-    if (tile === "I") return "boots";
-    if (tile === "2") return "hay";
-    if (tile === "3") return "carrots";
-    return null;
-  }
-
-  function resetPendingPickup() {
-    pendingPickup = null;
-  }
-
-  function resetFuseSequence() {
-    fuseStep = 0;
-  }
-
-  function resetSysSequence() {
-    sysStep = 0;
-  }
-
-  // =========================================================
-  // LEVEL OBJEKT
-  // =========================================================
-  const LEVEL2 = {
-    tileSize: TILE,
     background: "assets/LEVEL2.png",
-
-    // Wände sichtbar
-    renderWalls: true,
 
     // Spawnchar für Level2 ist "Z"
     spawnChar: "Z",
+    // optionaler Fallback-Spawn (falls Z mal fehlt)
+    spawn: { tx: 25, ty: 42 },
 
-    // Keine Gegner
-    enemies: {},
+    // Gegner-Konfig (wird nur genutzt wenn enemies.* true ist UND Marker im Grid existieren)
+    enemyConfig: {
+      wolf: {
+        mode: "patrolX",
+        distance: 10,
+        speed: 1.4,
+        scale: 4
+      },
+      bat: {
+        mode: "infinity",
+        a: 800,
+        b: 600,
+        speed: 0.07,
+        scale: 0.5
+      }
+    },
 
-    walls: walls,
+    // ACHTUNG: In deinem game.js ist "F" Bat-Spawnmarker.
+    // Wenn du "F" als Förderband im Level nutzen willst, dann muss bat:false bleiben.
+    enemies: {
+      bat: false,
+      wolf: false,
+    },
 
-    // eigener Tile Zugriff
+    renderWalls: true,
+
+    walls: [
+      "000000000000000000000000000000000000000000000",
+      "000000000000000000000000000000000000000000000",
+      "000000000000000000000000000000000000000000000",
+      "000000000000000000000000000000000000000000000",
+      "000000000000000000000000000000000000000000000",
+      "000000000000000000000000000000000000000000000",
+      "000000000000000000000000000000000000000000000",
+      "000000000000000000000000000000000000000000000",
+      "000000000000000000000000000000000000000000000",
+      "000000000000000000000000000000000000000000000",
+      "000000000000000000000000000000000000000000000",
+      "000000000000000000000000000000000000000000000",
+      "000000000000000000000000000000000000000000000",
+      "000000000000000000000000000000000000000000000",
+      "000000000000000000000000000000000000000000000",
+      "000000000000000000000000000000000000000000000",
+      "000000000000000000000000000000000000000000000",
+      "001111111100001111111000011111110001111111100",
+      "001000000000000000001111110000000000000000100",
+      "001000000000000000000000000000000000000000100",
+      "001000000000000000000000000000000000000000100",
+      "001000000000000000000000000000000000000000100",
+      "001000000000000000000000000000000000000000100",
+      "001000000000000000001000001000000000000000100",
+      "001000000000001111111000001111110001111111100",
+      "001000000000001000000000000000000000000000100",
+      "001000000000001000000000000000000000000000100",
+      "001000000000001000000000000000000000000000100",
+      "001000000000001000000000000000000000000000100",
+      "001000000000001000000000000000000000000000100",
+      "001000000000001000000000000000000000000000100",
+      "001111111100001111110000000000000000000001100",
+      "001000000000000000000000000000000000000000100",
+      "001000000000000000000000000000F00000000000100",
+      "0010000F0000000000000000000000000000000000100",
+      "001000000000000000000000000000000000000000000",
+      "001000000000000000000000000000000000000000000",
+      "001000000000000000000000000000000000000000111",
+      "111111111111111111111000011111111111111111111",
+      "100000000000000000000000000000000000000000001",
+      "100000000000000000000000000000000000000000001",
+      "100000000000000000000000000000000000000000001",
+      "1000000000000000000000000Z0000000000000000001",
+      "100000000000000000000000000000000000000000001",
+      "111111111111111111111111111111111111111111111",
+    ],
+
+    _spentTriggers: new Set(),
+
+    flags: {
+      // hier kannst du später etwas persistent speichern – analog zu Level1
+    },
+
     getTile(tx, ty) {
-      if (ty < 0 || tx < 0 || ty >= this.walls.length || tx >= this.walls[0].length) return "1";
-      return this.walls[ty][tx];
+      if (tx < 0 || ty < 0 || tx >= this.cols || ty >= this.rows) return "1";
+      const row = this.walls[ty];
+      if (!row) return "1";
+      return row[tx] ?? "1";
     },
 
     // SOLID LOGIK:
@@ -150,40 +105,38 @@
     isSolid(tx, ty) {
       const t = this.getTile(tx, ty);
       if (t === "1") return true;
-      if (t === "W" && phase < 6) return true;
+      if (t === "U" && phase < 6) return true;
       return false;
     },
 
-    // Trigger, wenn Spieler auf ein Tile läuft
-    checkTriggers(tx, ty) {
-      const t = this.getTile(tx, ty);
+    checkTriggers(playerTx, playerTy) {
+      const t = this.getTile(playerTx, playerTy);
 
-      // Phase 1: Wenn 8 berührt -> Text
+      // optional: damit Trigger nicht spammt (wie Level1)
+      const key = `${t}:${playerTx},${playerTy}`;
+      if (this._spentTriggers.has(key)) return;
+
+      // Phase 1: Wenn 8 berührt -> Text (einmalig)
       if (phase === 1 && t === "8") {
-        if (typeof LEVEL2._hud === "function") {
-          LEVEL2._hud("ohne hack nicht weiter");
-        }
+        this._spentTriggers.add(key);
+        showTempMessage("ohne hack nicht weiter", 2200, { typewriter: false, x: "50%", y: "15%", center: true });
       }
-      // Phase 6: Event 8 "verschwindet" einfach, weil wir nicht mehr reagieren.
     },
 
-    // Interaktionen: werden über game.js handleInteract() aufgerufen
     interactions: {
-      // -------------------------------
-      // Phase-unabhängige Objekttexte
-      // -------------------------------
+      // Förderband
       "F": (ctx) => msg(ctx.showTempMessage, "Förderband kaputt"),
+
+      // Maschine
       "M": (ctx) => {
         if (phase === 1) return msg(ctx.showTempMessage, "Maschie ist wohl kaputt ...");
         if (phase === 2) return msg(ctx.showTempMessage, "Irgendwas stimmt mit den Sicherungen nicht.");
         if (phase === 3) return msg(ctx.showTempMessage, "Repariert und bereit");
         if (phase === 4 || phase === 5) return msg(ctx.showTempMessage, "Repariert und bereit");
-        return; // Phase 6: keine Interaktion
+        return;
       },
 
-      // -------------------------------
-      // Computer A, B, C (C ist NUR Computer)
-      // -------------------------------
+      // Computer A/B/C
       "A": (ctx) => {
         if (phase >= 6) return;
         if (phase === 5) {
@@ -217,7 +170,6 @@
       "C": (ctx) => {
         if (phase >= 6) return;
 
-        // Phase 5: Reihenfolge A -> B -> C
         if (phase === 5) {
           if (sysStep !== 2) {
             msg(ctx.showTempMessage, "Error 404---Abbruch");
@@ -227,62 +179,73 @@
           msg(ctx.showTempMessage, "Förderband initialisiert");
           sysStep = 3;
 
-          // Phase 6 Start
           phase = 6;
           return;
         }
 
-        // In allen anderen Phasen: nur Computer-Text
         msg(ctx.showTempMessage, "Ein Computer");
       },
 
-      // -------------------------------
-      // Container (NEU) auf H statt C
-      // -------------------------------
+      // Container (H)
       "H": (ctx) => {
         if (phase >= 6) return;
-        // Du hattest den Container-Text vorher in Phase 1 bei C
-        if (phase === 1) return msg(ctx.showTempMessage, "Container leer");
-        // Optional: in anderen Phasen auch zeigen (wenn du willst)
         return msg(ctx.showTempMessage, "Container leer");
       },
 
-      // Items 1/2/3
-      "I": (ctx) => handleItemInteract(ctx, "1"),
+      // Items
+      "I": (ctx) => handleItemInteract(ctx, "I"),
       "2": (ctx) => handleItemInteract(ctx, "2"),
       "3": (ctx) => handleItemInteract(ctx, "3"),
 
-      // Sicherungen 4/5/6
+      // Sicherungen
       "4": (ctx) => handleFuseInteract(ctx, "4"),
       "5": (ctx) => handleFuseInteract(ctx, "5"),
       "6": (ctx) => handleFuseInteract(ctx, "6"),
 
-      // Kuh K
+      // Kuh
       "K": (ctx) => handleCowInteract(ctx),
 
-      // Event Tile 8
+      // Event Tile 8 per Interact (zusätzlich zu Trigger)
       "8": (ctx) => {
         if (phase >= 6) return;
         if (phase === 1) msg(ctx.showTempMessage, "ohne hack nicht weiter");
       }
-    }
+    },
   };
 
-  // =========================================================
-  // Sicherungen
-  // =========================================================
+  /* =========================================================
+     PHASEN-LOGIK (wie vorher – nur unterhalb, wie Level1-Style)
+     ========================================================= */
+  let phase = 1;
+
+  let fuseStep = 0; // 0=noch nicht begonnen, 1=4 ok, 2=5 ok, 3=6 ok -> phase3
+  let itemHeld = null; // null | "boots" | "hay" | "carrots"
+  let pendingPickup = null; // "I"|"2"|"3"|null
+  let sysStep = 0; // 0=noch nicht begonnen, 1=A ok, 2=B ok, 3=C ok -> phase6
+
+  function msg(showTempMessage, text) {
+    showTempMessage(text, 2200, { typewriter: false, x: "50%", y: "15%", center: true });
+  }
+
+  function tileToItem(tile) {
+    if (tile === "I") return "boots";
+    if (tile === "2") return "hay";
+    if (tile === "3") return "carrots";
+    return null;
+  }
+
+  function resetPendingPickup() { pendingPickup = null; }
+  function resetFuseSequence() { fuseStep = 0; }
+  function resetSysSequence() { sysStep = 0; }
+
   function handleFuseInteract(ctx, tile) {
     if (phase >= 6) return;
 
-    // Phase 1: nur Text
     if (phase === 1) {
-      if (tile === "4" || tile === "5" || tile === "6") {
-        msg(ctx.showTempMessage, "Ein Sicherungskasten....");
-      }
+      msg(ctx.showTempMessage, "Ein Sicherungskasten....");
       return;
     }
 
-    // Phase 2: Reihenfolge 4->5->6
     if (phase === 2) {
       const expected = fuseStep === 0 ? "4" : fuseStep === 1 ? "5" : "6";
 
@@ -303,16 +266,11 @@
     }
 
     // Phase 3+: 4/5/6 nicht mehr möglich
-    if (phase >= 3) return;
   }
 
-  // =========================================================
-  // HANDLER: Items (Phase 1/4/5)
-  // =========================================================
   function handleItemInteract(ctx, tile) {
     if (phase >= 6) return;
 
-    // Phase 1: fixe Texte
     if (phase === 1) {
       if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel?!");
       if (tile === "2") return msg(ctx.showTempMessage, "Heu?!");
@@ -320,29 +278,19 @@
       return;
     }
 
-    // Phase 5: Items leer
     if (phase === 5) {
       return msg(ctx.showTempMessage, "leer");
     }
 
-    // Phase 4: aufnehmen per "zweites Mal direkt hintereinander"
     if (phase === 4) {
       const candidate = tileToItem(tile);
 
-      // Tasche voll?
-      if (itemHeld && pendingPickup === tile) {
+      if (itemHeld) {
         msg(ctx.showTempMessage, "Tasche voll");
         resetPendingPickup();
         return;
       }
 
-      if (itemHeld && !pendingPickup) {
-        msg(ctx.showTempMessage, "Tasche voll");
-        resetPendingPickup();
-        return;
-      }
-
-      // noch kein Item
       if (!itemHeld) {
         if (pendingPickup !== tile) {
           pendingPickup = tile;
@@ -363,13 +311,9 @@
     }
   }
 
-  // =========================================================
-  // Kuh
-  // =========================================================
   function handleCowInteract(ctx) {
     if (phase >= 6) return;
 
-    // Phase 1
     if (phase === 1) {
       msg(ctx.showTempMessage, "Muh...Bin bereit, aber maschine kaputt");
       phase = 2;
@@ -378,13 +322,11 @@
       return;
     }
 
-    // Phase 2
     if (phase === 2) {
       msg(ctx.showTempMessage, "Maschine muss repariert werden");
       return;
     }
 
-    // Phase 3
     if (phase === 3) {
       msg(ctx.showTempMessage, "Muh.. bin hungrig vom warten");
       phase = 4;
@@ -393,7 +335,6 @@
       return;
     }
 
-    // Phase 4: abhängig vom Item
     if (phase === 4) {
       if (!itemHeld) {
         msg(ctx.showTempMessage, "Muh.. bin hungrig vom warten");
@@ -424,13 +365,9 @@
       }
     }
 
-    // Phase 5
     if (phase === 5) {
       msg(ctx.showTempMessage, "Computer starten das System");
       return;
     }
   }
-
-  // Expose
-  window.LEVEL2 = LEVEL2;
 })();
