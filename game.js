@@ -4,6 +4,7 @@ const startScreen = document.getElementById("startscreen");
 
 const batTpl = document.getElementById("batTpl");
 const wolfTpl = document.getElementById("wolfTpl");
+const cowTpl = document.getElementById("cowTpl"); // NEU
 
 let gameStarted = false;
 
@@ -39,6 +40,7 @@ let SAFE_UNTIL = 0;
 let px = 0, py = 0;
 const keys = { left: false, right: false, up: false, down: false };
 const enemies = []; // {type, el, x,y, homeX,homeY, t, cfg, dir, startX, maxX}
+const cows = [];    // NEU: reine Deko (ohne Hitbox)
 
 /* =========================
    SPEECH BUBBLE (HUD)
@@ -320,12 +322,74 @@ function getEnemyCfg(level, type) {
 }
 
 /* =========================
+   NEU: PER-LEVEL COW CONFIG
+   ========================= */
+function getCowCfg(level) {
+  const cfg = level?.cowConfig || {};
+  return {
+    enabled: cfg.enabled !== false, // default true
+    sprite: typeof cfg.sprite === "string" ? cfg.sprite : "assets/Cow.png",
+    frameW: typeof cfg.frameW === "number" ? cfg.frameW : 64,
+    frameH: typeof cfg.frameH === "number" ? cfg.frameH : 64,
+    animDur: typeof cfg.animDur === "number" ? cfg.animDur : 0.8,
+    scale: typeof cfg.scale === "number" ? cfg.scale : 2,
+    ox: typeof cfg.ox === "number" ? cfg.ox : 0,
+    oy: typeof cfg.oy === "number" ? cfg.oy : 0,
+    behindPlayer: cfg.behindPlayer === true
+  };
+}
+
+/* =========================
    ENEMIES (MULTI)
    ========================= */
 function clearEnemies() {
   for (const e of enemies) e.el.remove();
   enemies.length = 0;
 }
+
+/* =========================
+   NEU: COWS (DECO ONLY)
+   ========================= */
+function clearCows() {
+  for (const c of cows) c.el.remove();
+  cows.length = 0;
+}
+
+function spawnCow(tx, ty, cfg) {
+  const el = cowTpl.cloneNode(false);
+  el.id = "";
+  el.style.display = "block";
+  el.classList.add("anim");
+
+  // Sprite + Frame (wie Bat/Granny: 96x128)
+  const frameW = cfg.frameW ?? 96;
+  const frameH = cfg.frameH ?? 128;
+
+  // Sheet im Spiel immer 4x2 Frames
+  const sheetW = (cfg.sheetW ?? (frameW * 4));
+  const sheetH = (cfg.sheetH ?? (frameH * 2));
+
+  el.style.setProperty("--cowSprite", `url("${encodeURI(cfg.sprite)}")`);
+  el.style.setProperty("--cowFrameW", `${frameW}px`);
+  el.style.setProperty("--cowFrameH", `${frameH}px`);
+  el.style.setProperty("--cowSheetW", `${sheetW}px`);
+  el.style.setProperty("--cowSheetH", `${sheetH}px`);
+  el.style.setProperty("--cowAnimDur", `${cfg.animDur ?? 0.8}s`);
+
+  if (cfg.behindPlayer) game.insertBefore(el, player);
+  else game.appendChild(el);
+
+  // Position: mittig auf dem Tile (wie bei dir), dann scale
+  const s = cfg.scale ?? 1;
+  const x = tx * TILE + (TILE - frameW * s) / 2 + (cfg.ox ?? 0);
+  const y = ty * TILE + (TILE - frameH * s) / 2 + (cfg.oy ?? 0);
+
+  el.style.transformOrigin = "top left";
+  el.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
+
+  cows.push({ el });
+}
+
 
 function findAllMarkers(level, marker) {
   const out = [];
@@ -529,10 +593,17 @@ function loadLevel(level) {
 
   // Enemies aus Markern
   clearEnemies();
+  clearCows();
+
   const wolfSpawns = level.enemies?.wolf ? findAllMarkers(level, "W") : [];
-  const batSpawns = level.enemies?.bat ? findAllMarkers(level, "F") : [];
+  const batSpawns  = level.enemies?.bat  ? findAllMarkers(level, "F") : [];
+
+  // NEU: Kuh-Spawns über "K" (bleibt im Grid für Interactions!)
+  const cowCfg = getCowCfg(level);
+  const cowSpawns = (cowCfg.enabled && level?.cows?.cow) ? findAllMarkers(level, "K") : [];
 
   // Marker entfernen (spawn + enemy marker -> "0")
+  // WICHTIG: "K" NICHT entfernen, sonst geht interactions["K"] nicht mehr
   level.walls = level.walls.map(r =>
     r.replaceAll(spawnChar, "0").replaceAll("W", "0").replaceAll("F", "0")
   );
@@ -552,7 +623,10 @@ function loadLevel(level) {
 
   // Enemies spawnen
   for (const s of wolfSpawns) spawnEnemy("wolf", s.tx, s.ty);
-  for (const s of batSpawns) spawnEnemy("bat", s.tx, s.ty);
+  for (const s of batSpawns)  spawnEnemy("bat", s.tx, s.ty);
+
+  // NEU: Kühe spawnen (Deko, keine Hitbox)
+  for (const s of cowSpawns)  spawnCow(s.tx, s.ty, cowCfg);
 
   SAFE_UNTIL = performance.now() + 1200;
 
