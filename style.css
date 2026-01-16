@@ -19,7 +19,7 @@ body {
   background: black;
 
   display: flex;
-  flex-direction: column;   /* WICHTIG */
+  flex-direction: column;
   align-items: center;
   justify-content: center;
 
@@ -27,17 +27,6 @@ body {
   transition: clip-path 2s ease-out, opacity 200s ease-out;
 }
 
-/* Startbild */
-.start-image {
-  width: 512px;
-  max-width: 90vw;
-  height: auto;
-
-  image-rendering: pixelated;
-  margin-bottom: 24px; /* Abstand nach unten */
-}
-
-/* Blinkender Text */
 .press-enter {
   font-family: monospace;
   font-size: 48px;
@@ -53,11 +42,38 @@ body {
   100% { opacity: 1; }
 }
 
-/* Beim Start ausblenden */
 #startscreen.startscreen-hide {
   clip-path: ellipse(0% 0% at 50% 50%);
   opacity: 0;
   pointer-events: none;
+}
+
+/* Wrapper */
+#game-wrap {
+  position: relative;
+  width: calc(var(--cols) * 32px);
+  margin: 20px auto;
+}
+
+#game { margin: 0; }
+
+/* Side image */
+#side-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 850px;
+  height: 40%;
+  transform: translateX(calc(-100% - 8px));
+  z-index: 5;
+}
+
+#side-image img {
+  width: 150%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  display: block;
 }
 
 #game {
@@ -65,107 +81,111 @@ body {
   width: calc(var(--cols) * 32px);
   height: calc(var(--rows) * 32px);
   margin: 20px auto;
-    /* Hintergrundbild einfügen */
-  background-image: url('assets/Intro lvl.png');  /* Pfad zu deinem Bild */
-  background-size: cover;      /* Bild auf Canvas skalieren */
-  background-position: center; /* zentriert das Bild */
+
+  background-image: url('assets/Intro lvl.png');
+  background-size: cover;
+  background-position: center;
   background-repeat: no-repeat;
+
   display: grid;
   grid-template-columns: repeat(var(--cols), 32px);
   grid-template-rows: repeat(var(--rows), 32px);
   image-rendering: pixelated;
 }
 
-/* -------------------- SPIELER -------------------- */
-/* Dein Original-Sprite ist 1536×1024 => Frame = 384×512.
-   Wir skalieren auf 25% => Anzeige pro Frame: 96×128.
-   Sheet skaliert: 384×256 (1536×1024 * 0.25) */
+/* Player */
 #player {
   position: absolute;
-  width: 96px;     /* Framebreite skaliert */
-  height: 128px;   /* Framehöhe skaliert */
+  width: 96px;
+  height: 128px;
   z-index: 10;
   image-rendering: pixelated;
 
-  background-image: url('assets/Koch.png');   /* <— Pfad/Name ggf. anpassen */
+  background-image: url('assets/Koch.png');
   background-repeat: no-repeat;
-  background-size: 384px 256px;        /* Sheet gesamt skaliert (25%) */
-  background-position: 0 0;            /* Start: rechts, Frame 1 */
-
-  /* Keine CSS-Transitions auf transform! (vermeidet Ruckler) */
+  background-size: 384px 256px;
+  background-position: 0 0;
 }
 
-/* ---------- Animations-Definition (gemeinsam) ---------- */
 @keyframes walk {
-  /* 4 Frames → 4 Schritte × 96px = 384px Gesamtbreite */
   from { background-position-x: 0; }
   to   { background-position-x: -384px; }
 }
 
-/* Bat Richtungen */
-#bat.walk-right { background-position-y: 0; animation: walk 0.7s steps(4) infinite; }
-#bat.walk-left  { background-position-y: -128px; animation: walk 0.7s steps(4) infinite; }
-#bat.walk-up,
-#bat.walk-down { background-position-y: 0; animation: walk 0.7s steps(4) infinite; }
-
-/* ---------- Richtungen: immer nur EINE Walk-Klasse aktiv ---------- */
-/* Rechtslauf: erste Zeile */
-#player.walk-right {
-  background-position-y: 0;                  /* Zeile 1 (rechts) */
-  animation: walk 0.5s steps(4) infinite;
-}
-
-/* Linkslauf: zweite Zeile */
-#player.walk-left {
-  background-position-y: -128px;             /* Zeile 2 (links) */
-  animation: walk 0.5s steps(4) infinite;
-}
-
-/* Hoch/Runter: verwende den rechten Laufzyklus (sieht besser aus als starr) */
+#player.walk-right { background-position-y: 0;      animation: walk 0.5s steps(4) infinite; }
+#player.walk-left  { background-position-y: -128px; animation: walk 0.5s steps(4) infinite; }
 #player.walk-up,
-#player.walk-down {
-  background-position-y: 0;                  /* Zeile 1 (rechts) */
-  animation: walk 0.5s steps(4) infinite;
-}
+#player.walk-down  { background-position-y: 0;      animation: walk 0.5s steps(4) infinite; }
 
-#bat {
+/* Templates verstecken */
+#batTpl, #wolfTpl { display: none; }
+
+/* Bat (mehrere Instanzen) */
+.bat {
   position: absolute;
-  width: 96px;     /* Framebreite Bat (separat anpassbar) */
-  height: 128px;   /* Framehöhe Bat */
+  width: 96px;
+  height: 128px;
   z-index: 10;
   image-rendering: pixelated;
-  background-image: url('assets/Bat.png');   /* Bat Sprite */
+
+  background-image: url('assets/Bat.png');
   background-repeat: no-repeat;
-  background-size: 384px 256px;       /* Bat Sheet gesamt skaliert */
+  background-size: 384px 256px;
   background-position: 0 0;
 }
 
-/* Debug Wände  */
-#tiles .tile {
-  width: 32px;
-  height: 32px;
+.bat.walk-right { background-position-y: 0;      animation: walk 0.7s steps(4) infinite; }
+.bat.walk-left  { background-position-y: -128px; animation: walk 0.7s steps(4) infinite; }
+.bat.walk-up,
+.bat.walk-down  { background-position-y: 0;      animation: walk 0.7s steps(4) infinite; }
+
+/* Wolf (mehrere Instanzen) */
+@keyframes wolf-walk {
+  from { background-position-x: 0; }
+  to   { background-position-x: -256px; }
 }
 
-#tiles .tile.wall {
-  background: rgba(0, 140, 255, 0.35);
+/* Wolf.png: 256x128, 2 Reihen, 4 Frames => Frame 64x64 */
+.wolf {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  z-index: 10;
+  image-rendering: pixelated;
+
+  background-image: url('assets/Wolf.png');
+  background-repeat: no-repeat;
+  background-size: 256px 128px;
+  background-position: 0 0;
 }
 
+.wolf.walk-right,
+.wolf.walk-down {
+  background-position-y: 0;
+  animation: wolf-walk 0.7s steps(4) infinite;
+}
+
+.wolf.walk-left,
+.wolf.walk-up {
+  background-position-y: -64px;
+  animation: wolf-walk 0.7s steps(4) infinite;
+}
+
+/* Granny Tile 8 */
 .tile8-anim {
   position: absolute;
   width: 96px;
   height: 128px;
   image-rendering: pixelated;
- 
+
   background-image: url("assets/Granny.png");
   background-repeat: no-repeat;
- 
-  /* 4 Frames × 96px, 2 Reihen × 128px */
   background-size: 384px 256px;
- 
-  /* feste Zeile (z. B. erste Reihe) */
   background-position: 0 0;
- 
-  /* 🔥 Animation läuft IMMER, ohne Stop */
+
   animation: walk 0.7s steps(4) infinite;
 }
- 
+
+/* Debug walls */
+#tiles .tile { width: 32px; height: 32px; }
+#tiles .tile.wall { background: rgba(0, 140, 255, 0.35); }
