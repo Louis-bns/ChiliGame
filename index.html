@@ -8,13 +8,24 @@
 </head>
 <body>
   <h1>🌶️ Die Reise zum Mythischen Chili</h1>
+
   <div id="startscreen">
     <img src="assets/Startbild.png" alt="Startbild" />
     <div class="press-enter">Press Enter</div>
-</div>
-  <div id="game">
-    <div id="player"></div>
-    <div id="bat"></div>
+  </div>
+
+  <div id="game-wrap">
+    <div id="side-image">
+      <img src="assets/Liste.png" alt="Side Artwork">
+    </div>
+
+    <div id="game">
+      <div id="player"></div>
+
+
+      <div id="batTpl" class="bat"></div>
+      <div id="wolfTpl" class="wolf"></div>
+    </div>
   </div>
 
   <script src="levels/level1.js"></script>
