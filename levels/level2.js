@@ -7,61 +7,38 @@
 
     background: "assets/LEVEL2.png",
 
-    // Spawnchar für Level2 ist "Z"
     spawnChar: "Z",
-    // optionaler Fallback-Spawn (falls Z mal fehlt)
     spawn: { tx: 25, ty: 42 },
 
-    // Gegner-Konfig (wird nur genutzt wenn enemies.* true ist UND Marker im Grid existieren)
     enemyConfig: {
-      wolf: {
-        mode: "patrolX",
-        distance: 10,
-        speed: 1.4,
-        scale: 4
-      },
-      bat: {
-        mode: "infinity",
-        a: 8000,
-        b: 5000,
-        speed: 0.01,
-        scale: 0.9
-      }
+      wolf: { mode: "patrolX", distance: 10, speed: 1.4, scale: 4 },
+      bat: { mode: "infinity", a: 8000, b: 5000, speed: 0.01, scale: 0.9 }
     },
 
     // NEU: Kuh-Konfig (Deko, ohne Hitbox), wird auf jedem "K" Tile gerendert
-cowConfig: {
-  enabled: true,
-  sprite: "assets/Cow.png",
+    cowConfig: {
+      enabled: true,
+      sprite: "assets/Cow.png",
+      spritePatched: "assets/Cow_pflaster.png", // <-- NEU: Kuh mit Pflaster
 
-  // wie Koch/Bat/Granny
-  frameW: 96,
-  frameH: 128,
+      frameW: 96,
+      frameH: 128,
 
-  // optional: falls du es explizit willst (sonst wird es automatisch berechnet)
-  sheetW: 384,
-  sheetH: 256,
+      sheetW: 384,
+      sheetH: 256,
 
-  animDur: 0.8,
-  scale: 1,          // wenn sie exakt so groß wie Bat sein soll -> 1
-  ox: 0,
-  oy: 0,
-  behindPlayer: true
-},
-
-    // Toggle wie bei enemies
-    cows: {
-      cow: true
+      animDur: 0.8,
+      scale: 1,
+      ox: 0,
+      oy: 0,
+      behindPlayer: true
     },
 
-    // ACHTUNG: In deinem game.js ist "F" Bat-Spawnmarker.
-    // Wenn du "F" als Förderband im Level nutzen willst, dann muss bat:false bleiben.
-    enemies: {
-      bat: true,
-      wolf: true,
-    },
+    cows: { cow: true },
 
-    renderWalls: true,
+    enemies: { bat: true, wolf: false },
+
+    renderWalls: false,
 
     walls: [
       "000000000000000000000000000000000000000000000",
@@ -83,8 +60,8 @@ cowConfig: {
       "000000000100001000000000000000010001000000000",
       "001111111100001111111000011111110001111111100",
       "0010000001k00000000011111100AAA0000000CCC0100",
-      "0010000001k0W000000000000000AAA0000000CCC0100",
-      "0010000001k0000000000000000000000000000000100",
+      "0010000001k00000000000000000AAA0000000CCC0100",
+      "0010000001k00000000000000000AAA0000000CCC0100",
       "001000K001k0000000000000000000000000000000100",
       "0011111111k0000000000000000000000000000000100",
       "001kkkkkkkk0000000001000001000000000000000100",
@@ -95,7 +72,7 @@ cowConfig: {
       "001000000000001000000000000000000000000000100",
       "001000000000001000000000000000000000000000100",
       "001000000000001000000000000000000000000000100",
-      "001111111100001111110000000000F000000000001100",
+      "0011111111000011111100000000000F0000000001100",
       "001000000000000000000000000000000000000000100",
       "001000000000000000000000000000000000000000100",
       "0010HHHHHH00000000000000000000000000000000U00",
@@ -108,14 +85,12 @@ cowConfig: {
       "1YYYY0000000000000000000000000000000000000001",
       "1000000000000000000000000Z0000000000000000001",
       "100000000000000000000000000000000000000000001",
-      "111111111111111111111111111111111111111111111",
+      "111111111111111111111111111111111111111111111"
     ],
 
     _spentTriggers: new Set(),
 
-    flags: {
-      // hier kannst du später etwas persistent speichern – analog zu Level1
-    },
+    flags: {},
 
     getTile(tx, ty) {
       if (tx < 0 || ty < 0 || tx >= this.cols || ty >= this.rows) return "1";
@@ -124,9 +99,6 @@ cowConfig: {
       return row[tx] ?? "1";
     },
 
-    // SOLID LOGIK:
-    // - "1" immer Wand
-    // - "U" ist unsichtbare Wand bis Phase 6, danach passierbar
     isSolid(tx, ty) {
       const t = this.getTile(tx, ty);
       if (t === "1") return true;
@@ -136,23 +108,18 @@ cowConfig: {
 
     checkTriggers(playerTx, playerTy) {
       const t = this.getTile(playerTx, playerTy);
-
-      // optional: damit Trigger nicht spammt (wie Level1)
       const key = `${t}:${playerTx},${playerTy}`;
       if (this._spentTriggers.has(key)) return;
 
-      // Phase 1-5: Wenn 8 berührt -> Text (einmalig)
       if ([1, 2, 3, 4, 5].includes(phase) && t === "N") {
         this._spentTriggers.add(key);
-        showTempMessage("ohne hack nicht weiter", 2200, { typewriter: false, x: "50%", y: "15%", center: true });
+        msg(ctx.showTempMessage, "ohne hack nicht weiter");
       }
     },
 
     interactions: {
-      // Förderband
       "F": (ctx) => msg(ctx.showTempMessage, "Förderband kaputt"),
 
-      // Maschine
       "M": (ctx) => {
         if (phase === 1) return msg(ctx.showTempMessage, "Maschie ist wohl kaputt ...");
         if (phase === 2) return msg(ctx.showTempMessage, "Irgendwas stimmt mit den Sicherungen nicht.");
@@ -161,7 +128,6 @@ cowConfig: {
         return;
       },
 
-      // Computer A/B/C
       "A": (ctx) => {
         if (phase >= 6) return;
         if (phase === 5) {
@@ -204,52 +170,57 @@ cowConfig: {
           msg(ctx.showTempMessage, "Förderband initialisiert");
           sysStep = 3;
 
-          phase = 6;
+          // NEU: Schwarzblende + Phase6 + Kuh-Sprite swap
+          triggerPhase6Transition(ctx);
           return;
         }
 
         msg(ctx.showTempMessage, "Ein Computer");
       },
 
-      // Container (H)
+      // Container (H) - NEU: ab Phase 6 "voll mit hack"
       "H": (ctx) => {
-        if (phase >= 6) return;
+        if (phase >= 6) return msg(ctx.showTempMessage, "voll mit hack");
         return msg(ctx.showTempMessage, "Container leer");
       },
 
-      // Items
       "I": (ctx) => handleItemInteract(ctx, "I"),
       "2": (ctx) => handleItemInteract(ctx, "2"),
       "3": (ctx) => handleItemInteract(ctx, "3"),
 
-      // Sicherungen
       "4": (ctx) => handleFuseInteract(ctx, "4"),
       "5": (ctx) => handleFuseInteract(ctx, "5"),
       "6": (ctx) => handleFuseInteract(ctx, "6"),
 
-      // Kuh
       "k": (ctx) => handleCowInteract(ctx),
+      "K": (ctx) => handleCowInteract(ctx),
 
-      // Event Tile 8 per Interact (zusätzlich zu Trigger)
       "8": (ctx) => {
         if (phase >= 6) return;
         if (phase === 1) msg(ctx.showTempMessage, "ohne hack nicht weiter");
       }
-    },
+    }
   };
 
   /* =========================================================
-     PHASEN-LOGIK (wie vorher – nur unterhalb, wie Level1-Style)
+     PHASEN-LOGIK
      ========================================================= */
   let phase = 1;
 
-  let fuseStep = 0; // 0=noch nicht begonnen, 1=4 ok, 2=5 ok, 3=6 ok -> phase3
-  let itemHeld = null; // null | "boots" | "hay" | "carrots"
-  let pendingPickup = null; // "I"|"2"|"3"|null
-  let sysStep = 0; // 0=noch nicht begonnen, 1=A ok, 2=B ok, 3=C ok -> phase6
+  let fuseStep = 0;
+  let itemHeld = null;
+  let pendingPickup = null;
+  let sysStep = 0;
 
-  function msg(showTempMessage, text) {
-    showTempMessage(text, 2200, { typewriter: false, x: "50%", y: "15%", center: true });
+  function msg(showTempMessage, text, duration = 2200, extra = {}) {
+    showTempMessage(text, duration, {
+      x: "50%",
+      y: "50%",
+      center: true,
+      typewriter: true,
+      charDelay: 26,
+      ...extra
+    });
   }
 
   function tileToItem(tile) {
@@ -263,6 +234,68 @@ cowConfig: {
   function resetFuseSequence() { fuseStep = 0; }
   function resetSysSequence() { sysStep = 0; }
 
+  function applyPhase6WorldChanges(level, ctx) {
+  const L = level || window.LEVEL2;
+  if (!L) return;
+
+  if (L.cowConfig) L.cowConfig.enabled = false;
+  if (L.cows) L.cows.cow = false;
+
+  if (Array.isArray(L.walls)) {
+    L.walls = L.walls.map(row => row.replace(/k/g, "0").replace(/K/g, "0"));
+  }
+
+  if (ctx && typeof ctx.removeAllCowDecos === "function") {
+    ctx.removeAllCowDecos();
+  } else {
+    document.querySelectorAll(".cow-deco").forEach(el => el.remove());
+  }
+  }
+
+  function triggerPhase6Transition(ctx) {
+    // Wenn dein game.js eine Fade-Funktion hat, nutze sie (falls vorhanden)
+    if (ctx && typeof ctx.fadeToBlack === "function") {
+      ctx.fadeToBlack(700, () => {
+        phase = 6;
+        applyPhase6WorldChanges(ctx?.level, ctx);
+      });
+      return;
+    }
+
+    // Fallback: Overlay-DIV über dem Canvas
+    const id = "lvlFadeOverlay";
+    let ov = document.getElementById(id);
+    if (!ov) {
+      ov = document.createElement("div");
+      ov.id = id;
+      ov.style.position = "fixed";
+      ov.style.left = "0";
+      ov.style.top = "0";
+      ov.style.width = "100vw";
+      ov.style.height = "100vh";
+      ov.style.background = "black";
+      ov.style.opacity = "0";
+      ov.style.pointerEvents = "none";
+      ov.style.zIndex = "999999";
+      ov.style.transition = "opacity 700ms linear";
+      document.body.appendChild(ov);
+    }
+
+    requestAnimationFrame(() => {
+      ov.style.opacity = "1";
+    });
+
+    setTimeout(() => {
+      phase = 6;
+      applyPhase6WorldChanges(ctx?.level, ctx);
+
+      // kurz schwarz lassen, dann wieder aufblenden
+      setTimeout(() => {
+        ov.style.opacity = "0";
+      }, 250);
+    }, 720);
+  }
+
   function handleFuseInteract(ctx, tile) {
     if (phase >= 6) return;
 
@@ -272,21 +305,33 @@ cowConfig: {
     }
 
     if (phase === 2) {
-      const expected = fuseStep === 0 ? "4" : fuseStep === 1 ? "5" : "6";
+      const steps = [
+        { expected: "4", text: "Widerstand repariert" },
+        { expected: "5", text: "Leitungen überprüft" },
+        { expected: "6", text: "Sicherung repariert" }
+      ];
 
-      if (tile !== expected) {
+      const current = steps[fuseStep];
+
+      if (tile !== current.expected) {
         msg(ctx.showTempMessage, "Kurzschluss");
         resetFuseSequence();
         return;
       }
 
-      msg(ctx.showTempMessage, "Sicherung repariert");
+      msg(ctx.showTempMessage, current.text, 300);
+
       fuseStep++;
 
-      if (fuseStep >= 3) {
+      if (fuseStep >= steps.length) {
+        setTimeout(() => {
+          msg(ctx.showTempMessage, "Maschine leuchtet");
+        }, 600);
+
         phase = 3;
         resetFuseSequence();
       }
+
       return;
     }
   }
@@ -294,7 +339,7 @@ cowConfig: {
   function handleItemInteract(ctx, tile) {
     if (phase >= 6) return;
 
-    if (phase === 1) {
+    if (phase === 1 || phase === 2 || phase === 3) {
       if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel?!");
       if (tile === "2") return msg(ctx.showTempMessage, "Heu?!");
       if (tile === "3") return msg(ctx.showTempMessage, "Karotten?!");
