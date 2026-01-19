@@ -2,6 +2,9 @@ const game = document.getElementById("game");
 const player = document.getElementById("player");
 const startScreen = document.getElementById("startscreen");
 
+const restartBtn = document.getElementById("restartBtn");
+if (restartBtn) restartBtn.addEventListener("click", restartGame);
+
 const batTpl = document.getElementById("batTpl");
 const wolfTpl = document.getElementById("wolfTpl");
 const cowTpl = document.getElementById("cowTpl"); // NEU
@@ -18,7 +21,7 @@ let TILE = 32;
 /* =========================
    SETTINGS
    ========================= */
-const SPEED = 4;
+const SPEED = 1;
 
 // Player Hitbox
 const PLAYER_HIT = { w: 40, h: 60 };
@@ -38,6 +41,7 @@ let SAFE_UNTIL = 0;
    STATE
    ========================= */
 let px = 0, py = 0;
+let facing = "down"; // "left" | "right" | "up" | "down"
 const keys = { left: false, right: false, up: false, down: false };
 const enemies = []; // {type, el, x,y, homeX,homeY, t, cfg, dir, startX, maxX}
 const cows = [];    // NEU: reine Deko (ohne Hitbox)
@@ -194,6 +198,14 @@ document.addEventListener("keydown", (e) => {
     return;
   }
 
+    // R = Full Restart
+  if (k === "r") {
+    e.preventDefault();
+    restartGame(); // macht window.location.reload()
+    return;
+  }
+
+
   // SPACE interact
   if ((k === " " || e.code === "Space") && gameStarted) {
     e.preventDefault();
@@ -244,10 +256,16 @@ function getTileAt(level, tx, ty) {
 }
 
 function getPlayerTilePos() {
-  const cx = px + player.clientWidth / 2;
-  const cy = py + player.clientHeight / 2;
+  // Nutze die Hitbox-Mitte statt Sprite-Mitte -> Interact fühlt sich viel präziser an
+  const hitOX = (player.clientWidth - PLAYER_HIT.w) / 2;
+  const hitOY = (player.clientHeight - PLAYER_HIT.h) / 2;
+
+  const cx = px + hitOX + PLAYER_HIT.w / 2;
+  const cy = py + hitOY + PLAYER_HIT.h / 2;
+
   return { tx: Math.floor(cx / TILE), ty: Math.floor(cy / TILE) };
 }
+
 
 function handleInteract() {
   if (!currentLevel) return;
@@ -255,27 +273,41 @@ function handleInteract() {
   const { tx, ty } = getPlayerTilePos();
   const tile = getTileAt(currentLevel, tx, ty);
 
-  if (tile === "0") return;
-
+  // 1) Wenn es eine direkte Interaktion für das Tile gibt (z.B. K, F, M, ...)
   const map = currentLevel.interactions || {};
   const fn = map[tile];
 
   if (typeof fn === "function") {
     fn({
-  level: currentLevel,
-  tile, tx, ty,
-  showTempMessage,
-  playerEl: player,
-  gameEl: game,
-  removeAllCowDecos
-});
+      level: currentLevel,
+      tile, tx, ty,
+      showTempMessage,
+      playerEl: player,
+      gameEl: game,
+      facing,
+      playerTile: { tx, ty }
+    });
     return;
   }
 
+  // 2) Wichtig: onInteract IMMER erlauben (auch wenn tile === "0"),
+  // weil Push-Puzzle "vor dem Spieler" arbeitet.
   if (typeof currentLevel.onInteract === "function") {
-    currentLevel.onInteract({ level: currentLevel, tile, tx, ty, showTempMessage, playerEl: player, gameEl: game });
+    currentLevel.onInteract({
+      level: currentLevel,
+      tile, tx, ty,
+      showTempMessage,
+      playerEl: player,
+      gameEl: game,
+      facing,
+      playerTile: { tx, ty }
+    });
+    return;
   }
+
+  // 3) Falls weder interactions noch onInteract: dann kein Interact
 }
+
 
 /* =========================
    WALL COLLISION
@@ -562,6 +594,9 @@ function renderDebugWalls(level) {
    LEVEL LOADER
    ========================= */
 function loadLevel(level) {
+  const puzzleLayer = document.getElementById("puzzleLayer");
+if (puzzleLayer) puzzleLayer.remove();
+
   // alte Layer löschen (falls vorhanden)
   const decor = document.getElementById("decor");
   if (decor) decor.innerHTML = "";
@@ -654,6 +689,16 @@ function loadLevel(level) {
 
   update._lastTx = spawnTx;
   update._lastTy = spawnTy;
+
+  if (typeof currentLevel.onLoad === "function") {
+  currentLevel.onLoad({
+    level: currentLevel,
+    showTempMessage,
+    playerEl: player,
+    gameEl: game
+  });
+}
+
 }
 
 /* =========================
@@ -661,6 +706,12 @@ function loadLevel(level) {
    ========================= */
 function update() {
   if (!gameStarted || !currentLevel) return;
+
+  if (currentLevel?.flags?.carrying) {
+  player.classList.add("carrying");
+} else {
+  player.classList.remove("carrying");
+}
 
   // Movement
   let vx = 0, vy = 0;
@@ -684,10 +735,10 @@ function update() {
     if (canMoveTo(px, ny)) py = ny;
   }
 
-  if (vx > 0) setWalkClass(player, "right");
-  else if (vx < 0) setWalkClass(player, "left");
-  else if (vy < 0) setWalkClass(player, "up");
-  else if (vy > 0) setWalkClass(player, "down");
+  if (vx > 0) { facing = "right"; setWalkClass(player, "right"); }
+  else if (vx < 0) { facing = "left"; setWalkClass(player, "left"); }
+  else if (vy < 0) { facing = "up"; setWalkClass(player, "up"); }
+  else if (vy > 0) { facing = "down"; setWalkClass(player, "down"); }
   else setWalkClass(player, null);
 
   player.style.transform = `translate(${px}px, ${py}px)`;
@@ -703,10 +754,19 @@ function update() {
     }
   }
 
-  // Levelwechsel über Tile "Z" (optional)
+  // Levelwechsel
   const tileHere = getTileAt(currentLevel, ptx, pty);
-  if (tileHere === "Z" && window.LEVEL2 && currentLevel !== window.LEVEL2) {
+
+  // Level 1 -> Level 2
+  if (tileHere === "Z" && window.LEVEL2 && currentLevel.id !== "level2") {
     loadLevel(window.LEVEL2);
+    requestAnimationFrame(update);
+    return;
+  }
+
+  // Level 2 -> Level 3
+  if (tileHere === "Y" && window.LEVEL3 && currentLevel.id === "level2") {
+    loadLevel(window.LEVEL3);
     requestAnimationFrame(update);
     return;
   }
@@ -724,3 +784,5 @@ function update() {
 
   requestAnimationFrame(update);
 }
+
+
