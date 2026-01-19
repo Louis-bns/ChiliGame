@@ -5,7 +5,7 @@
     rows: 45,
     tileSize: 32,
 
-    background: "assets/level3.png",
+    background: "assets/Level3.png",
 
     // Spawnmarker (wird vom Loader zu "0" ersetzt)
     spawnChar: "Y",
