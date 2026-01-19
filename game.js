@@ -261,7 +261,14 @@ function handleInteract() {
   const fn = map[tile];
 
   if (typeof fn === "function") {
-    fn({ level: currentLevel, tile, tx, ty, showTempMessage, playerEl: player, gameEl: game });
+    fn({
+  level: currentLevel,
+  tile, tx, ty,
+  showTempMessage,
+  playerEl: player,
+  gameEl: game,
+  removeAllCowDecos
+});
     return;
   }
 
@@ -355,11 +362,17 @@ function clearCows() {
   cows.length = 0;
 }
 
+function removeAllCowDecos() {
+  document.querySelectorAll(".cow-deco").forEach(el => el.remove());
+  cows.length = 0;
+}
+
 function spawnCow(tx, ty, cfg) {
   const el = cowTpl.cloneNode(false);
   el.id = "";
   el.style.display = "block";
   el.classList.add("anim");
+  el.classList.add("cow-deco");
 
   // Sprite + Frame (wie Bat/Granny: 96x128)
   const frameW = cfg.frameW ?? 96;
@@ -594,6 +607,9 @@ function loadLevel(level) {
   // Enemies aus Markern
   clearEnemies();
   clearCows();
+
+  
+
 
   const wolfSpawns = level.enemies?.wolf ? findAllMarkers(level, "W") : [];
   const batSpawns  = level.enemies?.bat  ? findAllMarkers(level, "F") : [];
