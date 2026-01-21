@@ -50,10 +50,10 @@
       "100000000000099910000000000000000000000000001",
       "100000000000099910000000000000000000000000001",
       "100000000000099910000000000000000000000000001",
-      "100000000000000010000000000000000000000000001",
-      "1W0000000000000010000000000000000000000000001",
-      "100000000000000010000100001111100000000000001",
-      "100000000000000010000100000000100000000000001",
+      "1SSSSSSSSSS0099910000000000000000000000000001",
+      "1SSSSSSSSSS0000010000000000000000000000000001",
+      "1SSSSSSSSSS0000010000100001111100000000000001",
+      "1SSSSSSSSSS0000010000100000000100000000000001",
       "100000000000000010000100000000111111111111111",
       "100000000000000010000100000000000000000000001",
       "100000000000000010000100020000000000000000001",
@@ -70,7 +70,7 @@
       "100000000000000000001000000000000000010000001",
       "1555550000000000F0001000000000000000010000001",
       "155555000000000000001000000000000000010000001",
-      "185555000000000000001000000000000000010000001",
+      "108555000000000000001000000000000000010000001",
       "155555000000000000001111111111111111110000001",
       "155555000000000000000000400000000000000000001",
       "100000000000000000000000400000000000000000001",
@@ -83,7 +83,8 @@
 
     flags: {
       talkedToOma: false,
-      tookKey: false
+      tookKey: false,
+      ingredientsShown: false
     },
 
     getTile(tx, ty) {
@@ -122,61 +123,84 @@
       this._spentTriggers.add(key);
 
       if (t === "3") {
-        showTempMessage("Komm in die Küche, die Oma brauch dich mal!", 3000, { typewriter: true, charDelay: 26 });
+        showTempMessage("'Hey Kid, please get in the kitchen..'", 3000, { typewriter: true, charDelay: 26 });
       }
 
       if (t === "4") {
         showTempMessage(
-          "Interagiere mit Hilfe von Leertaste mit deiner Umgebung, probiere gleich mal mit Oma zu reden.",
-          3000, { typewriter: true, charDelay: 26 }
+          "Interact with your surroundings using the 'SPACEBAR'.",
+          3000, { typewriter: true, charDelay: 26, lockPlayer: true }
         );
+        setTimeout(() => {
+        showTempMessage("Try talking to Grandma right away",2500,{ typewriter: true, charDelay: 26, lockPlayer: true }
+          );
+        }, 2500); // minimal länger als 2500ms
       }
 
       if (t === "7") {
         if (!this.flags.talkedToOma) {
-          showTempMessage("Rede erst mit Oma!", 3000, { typewriter: true, charDelay: 26 });
+          showTempMessage("Talk to Grandma first", 3000, { typewriter: true, charDelay: 26 });
         }
       }
 
       if (t === "A") {
         if (!this.flags.tookKey) {
-          showTempMessage("vergiss die schlüssel nicht!", 3000, { typewriter: true, charDelay: 26 });
+          showTempMessage("'Hey Kid, don't forget the keys..", 3000, { typewriter: true, charDelay: 26 });
         }
       }
     },
 
     interactions: {
-      "5": ({ level, showTempMessage }) => {
+    "5": ({ level, showTempMessage }) => {
         if (!level.flags.talkedToOma) {
           level.flags.talkedToOma = true;
-          showTempMessage("Die Chili Zutaten fehlen, geh los", 2500, { typewriter: true, charDelay: 26 });
-        } else {
-          showTempMessage("Oma: Viel Erfolg da draußen!", 2000, { typewriter: true, charDelay: 26 });
+
+    // Zutatenliste erst nach Oma-Gespräch zeigen (einmalig)
+        if (!level.flags.ingredientsShown) {
+          level.flags.ingredientsShown = true;
+          showIngredientsList(); // <- Funktion aus game.js (die das UI einblendet)
         }
-      },
+
+        showTempMessage("I started cooking CHILI CON CARNE, but I am missing almost all ingriedients..",8000,  { typewriter: true, charDelay: 26, lockPlayer: true });
+        setTimeout(() => {
+        showTempMessage("Here.. take that list and get me the missing ones..",2500,{ typewriter: true, charDelay: 26, lockPlayer: true }
+          );
+        }, 2500); // minimal länger als 2500ms
+      
+      } else {
+        showTempMessage("I'm so forgetful", 2000, { typewriter: true, charDelay: 26 });
+      }
+    },
 
       "9": ({ level, showTempMessage }) => {
         if (!level.flags.tookKey) {
           level.flags.tookKey = true;
-          showTempMessage("Schlüssel gefunden", 2500, { typewriter: true, charDelay: 26 });
+          showKeyPopup(); //Bild über dem Kopf
+          showTempMessage("Keys found", 2500, { typewriter: true, charDelay: 26 });
         } else {
-          showTempMessage("Schublade ist leer", 2000, { typewriter: true, charDelay: 26 });
+          showTempMessage("Drawer is empty", 2000, { typewriter: true, charDelay: 26 });
         }
       },
 
       "6": ({ level, showTempMessage }) => {
         if (!level.flags.talkedToOma) {
-          showTempMessage("Rede erst mit Oma!", 2000, { typewriter: true, charDelay: 26 });
+          showTempMessage("Talk to Grandma first", 2000, { typewriter: true, charDelay: 26 });
         } else {
-          showTempMessage("Du kannst jetzt hier durch.", 1500);
+          showTempMessage("you can pass now", 1500);
         }
+      },
+
+
+
+      "S": ({ level, showTempMessage }) => {
+      showTempMessage("Nothing here", 2000, { typewriter: true, charDelay: 26 });
       },
 
       "B": ({ level, showTempMessage }) => {
         if (!level.flags.tookKey) {
           showTempMessage("Vergiss den Schlüssel aus der Schublade nicht", 2000, { typewriter: true, charDelay: 26 });
         } else {
-          showTempMessage("Du kannst jetzt hier durch.", 1500);
+          showTempMessage("you can pass now.", 1500);
         }
       },
     },

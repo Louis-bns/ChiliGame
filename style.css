@@ -48,34 +48,44 @@ body {
   pointer-events: none;
 }
 
-/* Wrapper */
 #game-wrap {
-  position: relative;
-  width: calc(var(--cols) * 32px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 24px;           /* Abstand zwischen Liste und Game */
   margin: 20px auto;
+  width: max-content; /* passt sich Inhalt an */
 }
 
-#game { margin: 0; }
+/* =========================================================
+   Side image (Zutatenliste) – links neben dem Game + smooth
+   ========================================================= */
 
-/* Side image */
 #side-image {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 850px;
-  height: 40%;
-  transform: translateX(calc(-100% - 8px));
-  z-index: 5;
+  width: 520px;
+  flex-shrink: 0;
+
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+
+  pointer-events: none;
 }
 
 #side-image img {
-  width: 150%;
-  height: 100%;
-  object-fit: contain;
+  width: 100%;
+  height: auto;
   image-rendering: pixelated;
   display: block;
 }
 
+/* Startzustand: unsichtbar + etwas weiter links */
+#side-image.hidden {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+
+/* Game */
 #game {
   position: relative;
   width: calc(var(--cols) * 32px);
@@ -176,7 +186,7 @@ body {
   image-rendering: pixelated;
   background-repeat: no-repeat;
 
-  /* Frame-Größe (wie Koch/Bat/Granny) */
+  /* Frame-Größe */
   width: var(--cowFrameW, 96px);
   height: var(--cowFrameH, 128px);
 
@@ -205,7 +215,6 @@ body {
   100%  { background-position: 0 0; }
 }
 
-
 /* Granny Tile 8 */
 .tile8-anim {
   position: absolute;
@@ -225,7 +234,7 @@ body {
 #tiles .tile { width: 32px; height: 32px; }
 #tiles .tile.wall { background: rgba(0, 140, 255, 0.35); }
 
-/* Basis (du hast das schon) */
+/* Basis  */
 .tile-push {
   position: absolute;
   width: 32px;
@@ -255,10 +264,50 @@ body {
 .tile-target-green { border-color: #46d36a; background: rgba(70,211,106,0.30); }
 .tile-target-red   { border-color: #ff4a4a; background: rgba(255,74,74,0.30); }
 
-
 .tile-push-locked {
   background: #cfcfcf;
   border-color: #111;
   box-shadow: 6px 6px 0 #000;
   outline: 4px solid #ffd54a; /* "gelockt" sichtbar */
+}
+
+.key-popup {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+  animation: keyPop 1.2s ease-out forwards;
+  z-index: 1000;
+}
+
+@keyframes keyPop {
+  0% {
+    transform: translateY(0) scale(0.5);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1);
+  }
+  100% {
+    transform: translateY(-40px) scale(1);
+    opacity: 0;
+  }
+}
+
+.arrow-popup {
+  position: absolute;
+  width: 160px;            /* Größe anpassen */
+  height: 160px;
+  pointer-events: none;
+  z-index: 1000;
+  image-rendering: pixelated;
+  animation: arrowHint 5s ease-out forwards;
+}
+
+@keyframes arrowHint {
+  0%   { transform: translateY(0) scale(0.9); opacity: 0; }
+  15%  { transform: translateY(-6px) scale(1); opacity: 1; }
+  85%  { transform: translateY(-10px) scale(1); opacity: 1; }
+  100% { transform: translateY(-18px) scale(1); opacity: 0; }
 }
