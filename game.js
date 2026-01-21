@@ -845,7 +845,7 @@ function update(now = performance.now()) {
   if (keys.left)  vx -= SPEED * dt;
   if (keys.down)  vy += SPEED * dt;
   if (keys.up)    vy -= SPEED * dt;
-
+  }
   // optional: diagonal normalisieren (damit diagonal nicht schneller ist)
   const len = Math.hypot(vx, vy);
   if (len > 0) {
