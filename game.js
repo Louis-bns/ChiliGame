@@ -21,7 +21,7 @@ let TILE = 32;
 /* =========================
    SETTINGS
    ========================= */
-const SPEED = 1;
+const SPEED = 4;
 
 // Player Hitbox
 const PLAYER_HIT = { w: 40, h: 60 };
