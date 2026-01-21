@@ -833,105 +833,102 @@ function update(now = performance.now()) {
   update._lastTime = now;
 
   // dt begrenzen (Tab-Wechsel / Lags)
-  if (dt > 0.05) dt = 0.05; // max 50ms
+  if (dt > 0.05) dt = 0.05;
 
   if (currentLevel?.flags?.carrying) player.classList.add("carrying");
   else player.classList.remove("carrying");
 
-  // Movement (px pro Sekunde * dt)
-  let vx = 0, vy = 0;
+  // =========================
+  // MOVEMENT (nur wenn nicht gelocked)
+  // =========================
   if (!PLAYER_LOCKED) {
-  if (keys.right) vx += SPEED * dt;
-  if (keys.left)  vx -= SPEED * dt;
-  if (keys.down)  vy += SPEED * dt;
-  if (keys.up)    vy -= SPEED * dt;
+    let vx = 0, vy = 0;
+    if (keys.right) vx += SPEED * dt;
+    if (keys.left)  vx -= SPEED * dt;
+    if (keys.down)  vy += SPEED * dt;
+    if (keys.up)    vy -= SPEED * dt;
+
+    // diagonal normalisieren
+    const len = Math.hypot(vx, vy);
+    if (len > 0) {
+      const max = SPEED * dt;
+      vx = (vx / len) * max;
+      vy = (vy / len) * max;
+    }
+
+    const hitOX = (player.clientWidth - PLAYER_HIT.w) / 2;
+    const hitOY = (player.clientHeight - PLAYER_HIT.h) / 2;
+
+    const canMoveTo = (nx, ny) =>
+      !rectIntersectsWall(nx + hitOX, ny + hitOY, PLAYER_HIT.w, PLAYER_HIT.h);
+
+    if (vx) {
+      const nx = px + vx;
+      if (canMoveTo(nx, py)) px = nx;
+    }
+    if (vy) {
+      const ny = py + vy;
+      if (canMoveTo(px, ny)) py = ny;
+    }
+
+    if (vx > 0) { facing = "right"; setWalkClass(player, "right"); }
+    else if (vx < 0) { facing = "left"; setWalkClass(player, "left"); }
+    else if (vy < 0) { facing = "up"; setWalkClass(player, "up"); }
+    else if (vy > 0) { facing = "down"; setWalkClass(player, "down"); }
+    else setWalkClass(player, null);
+
+    player.style.transform = `translate(${px}px, ${py}px)`;
   }
-  // optional: diagonal normalisieren (damit diagonal nicht schneller ist)
-  const len = Math.hypot(vx, vy);
-  if (len > 0) {
-    const max = SPEED * dt;
-    vx = (vx / len) * max;
-    vy = (vy / len) * max;
-  }
-
-  const hitOX = (player.clientWidth - PLAYER_HIT.w) / 2;
-  const hitOY = (player.clientHeight - PLAYER_HIT.h) / 2;
-
-  const canMoveTo = (nx, ny) =>
-    !rectIntersectsWall(nx + hitOX, ny + hitOY, PLAYER_HIT.w, PLAYER_HIT.h);
-
-  if (vx) {
-    const nx = px + vx;
-    if (canMoveTo(nx, py)) px = nx;
-  }
-  if (vy) {
-    const ny = py + vy;
-    if (canMoveTo(px, ny)) py = ny;
-  }
-
-  if (vx > 0) { facing = "right"; setWalkClass(player, "right"); }
-  else if (vx < 0) { facing = "left"; setWalkClass(player, "left"); }
-  else if (vy < 0) { facing = "up"; setWalkClass(player, "up"); }
-  else if (vy > 0) { facing = "down"; setWalkClass(player, "down"); }
-  else setWalkClass(player, null);
-
-  player.style.transform = `translate(${px}px, ${py}px)`;
 
   // =========================
-  // Tile Change -> Trigger (WIEDER DRIN!)
+  // Tile / Trigger / Levelwechsel (IMMER prüfen)
   // =========================
   const { tx: ptx, ty: pty } = getPlayerTilePos();
+
   if (update._lastTx !== ptx || update._lastTy !== pty) {
     update._lastTx = ptx;
     update._lastTy = pty;
-
     if (typeof currentLevel.checkTriggers === "function") {
       currentLevel.checkTriggers(ptx, pty);
     }
   }
 
-  // =========================
-  // Levelwechsel (WIEDER DRIN!)
-  // =========================
-const tileHere = getTileAt(currentLevel, ptx, pty);
+  const tileHere = getTileAt(currentLevel, ptx, pty);
 
-// Level 1 -> Level 2
-if (tileHere === "Z" && window.LEVEL2 && currentLevel.id === "level1") {
-  loadLevel(window.LEVEL2);
-  requestAnimationFrame(update);
-  return;
-}
+  if (tileHere === "Z" && window.LEVEL2 && currentLevel.id === "level1") {
+    loadLevel(window.LEVEL2);
+    requestAnimationFrame(update);
+    return;
+  }
 
-// Level 2 -> Level 3
-if (tileHere === "Y" && window.LEVEL3 && currentLevel.id === "level2") {
-  loadLevel(window.LEVEL3);
-  requestAnimationFrame(update);
-  return;
-}
+  if (tileHere === "Y" && window.LEVEL3 && currentLevel.id === "level2") {
+    loadLevel(window.LEVEL3);
+    requestAnimationFrame(update);
+    return;
+  }
 
-// Level 3 -> Level 4
-if (tileHere === "Q" && window.LEVEL4 && currentLevel.id === "level3") {
-  loadLevel(window.LEVEL4);
-  requestAnimationFrame(update);
-  return;
-}
-
+  // Level 3 -> Level 4 (du nutzt jetzt "Q")
+  if (tileHere === "Q" && window.LEVEL4 && currentLevel.id === "level3") {
+    loadLevel(window.LEVEL4);
+    requestAnimationFrame(update);
+    return;
+  }
 
   // =========================
-  // Enemies bewegen (WIEDER DRIN!)
+  // Enemies bewegen + Collision (IMMER laufen lassen)
   // =========================
   for (const e of enemies) updateEnemy(e);
 
-  // =========================
-  // Enemy collision -> restart (WIEDER DRIN!)
-  // =========================
   if (performance.now() > SAFE_UNTIL) {
     const p = getPlayerHitRect();
     for (const e of enemies) {
-      if (rectsOverlap(p, getEnemyHitRect(e))) return restartGame();
+      if (rectsOverlap(p, getEnemyHitRect(e))) {
+        restartGame();
+        return;
+      }
     }
   }
 
+  // WICHTIG: Loop immer weiter laufen lassen
   requestAnimationFrame(update);
 }
-
