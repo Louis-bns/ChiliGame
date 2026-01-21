@@ -184,6 +184,40 @@ function setWalkClass(el, dir) {
   if (dir) el.classList.add("walk-" + dir);
 }
 
+function forceSolveCurrentLevel() {
+  if (!currentLevel) return;
+
+  // Nur für Level 3 (optional absichern)
+  if (currentLevel.id !== "level3") {
+    console.warn("forceSolve: falsches Level");
+    return;
+  }
+
+  // Alle Targets direkt als gelöst markieren
+  for (const t of currentLevel._targets || []) {
+    currentLevel.setTile(t.tx, t.ty, "L");
+  }
+
+  currentLevel.flags.solved = true;
+
+  // Neu rendern (Tür, Blöcke, etc.)
+  if (typeof currentLevel.renderPuzzle === "function") {
+    currentLevel.renderPuzzle({
+      gameEl: game,
+      showTempMessage
+    });
+  }
+
+  // Offizielles Solve-Event auslösen
+  if (typeof currentLevel.checkSolved === "function") {
+    currentLevel.checkSolved({
+      showTempMessage
+    });
+  }
+
+  console.log("LEVEL FORCED SOLVED");
+}
+
 /* =========================
    INPUT
    ========================= */
@@ -214,6 +248,13 @@ document.addEventListener("keydown", (e) => {
     handleInteract();
     return;
   }
+
+  // DEBUG: Shift + L = Level sofort lösen
+if (e.shiftKey && e.key.toLowerCase() === "l") {
+  e.preventDefault();
+  forceSolveCurrentLevel();
+  return;
+}
 
   switch (k) {
     case "arrowright":
@@ -775,21 +816,29 @@ function update(now = performance.now()) {
   // =========================
   // Levelwechsel (WIEDER DRIN!)
   // =========================
-  const tileHere = getTileAt(currentLevel, ptx, pty);
+const tileHere = getTileAt(currentLevel, ptx, pty);
 
-  // Level 1 -> Level 2
-  if (tileHere === "Z" && window.LEVEL2 && currentLevel.id !== "level2") {
-    loadLevel(window.LEVEL2);
-    requestAnimationFrame(update);
-    return;
-  }
+// Level 1 -> Level 2
+if (tileHere === "Z" && window.LEVEL2 && currentLevel.id === "level1") {
+  loadLevel(window.LEVEL2);
+  requestAnimationFrame(update);
+  return;
+}
 
-  // Level 2 -> Level 3
-  if (tileHere === "Y" && window.LEVEL3 && currentLevel.id === "level2") {
-    loadLevel(window.LEVEL3);
-    requestAnimationFrame(update);
-    return;
-  }
+// Level 2 -> Level 3
+if (tileHere === "Y" && window.LEVEL3 && currentLevel.id === "level2") {
+  loadLevel(window.LEVEL3);
+  requestAnimationFrame(update);
+  return;
+}
+
+// Level 3 -> Level 4
+if (tileHere === "Q" && window.LEVEL4 && currentLevel.id === "level3") {
+  loadLevel(window.LEVEL4);
+  requestAnimationFrame(update);
+  return;
+}
+
 
   // =========================
   // Enemies bewegen (WIEDER DRIN!)
