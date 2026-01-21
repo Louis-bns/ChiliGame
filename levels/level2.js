@@ -36,7 +36,7 @@
 
     cows: { cow: true },
 
-    enemies: { bat: true, wolf: false },
+    enemies: { bat: false, wolf: false },
 
     renderWalls: false,
 
