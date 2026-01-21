@@ -21,7 +21,7 @@ let TILE = 32;
 /* =========================
    SETTINGS
    ========================= */
-const SPEED = 4;
+const SPEED = 240;
 
 // Player Hitbox
 const PLAYER_HIT = { w: 40, h: 60 };
@@ -216,6 +216,40 @@ function setWalkClass(el, dir) {
   if (dir) el.classList.add("walk-" + dir);
 }
 
+function forceSolveCurrentLevel() {
+  if (!currentLevel) return;
+
+  // Nur für Level 3 (optional absichern)
+  if (currentLevel.id !== "level3") {
+    console.warn("forceSolve: falsches Level");
+    return;
+  }
+
+  // Alle Targets direkt als gelöst markieren
+  for (const t of currentLevel._targets || []) {
+    currentLevel.setTile(t.tx, t.ty, "L");
+  }
+
+  currentLevel.flags.solved = true;
+
+  // Neu rendern (Tür, Blöcke, etc.)
+  if (typeof currentLevel.renderPuzzle === "function") {
+    currentLevel.renderPuzzle({
+      gameEl: game,
+      showTempMessage
+    });
+  }
+
+  // Offizielles Solve-Event auslösen
+  if (typeof currentLevel.checkSolved === "function") {
+    currentLevel.checkSolved({
+      showTempMessage
+    });
+  }
+
+  console.log("LEVEL FORCED SOLVED");
+}
+
 /* =========================
    KEY POPUP (Schlüssel gefunden)
    ========================= */
@@ -270,7 +304,9 @@ document.addEventListener("keydown", (e) => {
     setTimeout(() => {
     showArrowsPopup(2200);
   }, 1200);
+    update._lastTime = null;
     requestAnimationFrame(update);
+
     return;
   }
 
@@ -288,6 +324,13 @@ document.addEventListener("keydown", (e) => {
     handleInteract();
     return;
   }
+
+  // DEBUG: Shift + L = Level sofort lösen
+if (e.shiftKey && e.key.toLowerCase() === "l") {
+  e.preventDefault();
+  forceSolveCurrentLevel();
+  return;
+}
 
   switch (k) {
     case "arrowright":
@@ -747,6 +790,7 @@ if (puzzleLayer) puzzleLayer.remove();
   px = spawn.tx * TILE + (TILE - player.clientWidth) / 2;
   py = spawn.ty * TILE + (TILE - player.clientHeight) / 2;
   player.style.transform = `translate(${px}px, ${py}px)`;
+  update._lastTime = null; // wichtig nach loadLevel
 
   // Enemies spawnen
   for (const s of wolfSpawns) spawnEnemy("wolf", s.tx, s.ty);
@@ -780,25 +824,35 @@ if (puzzleLayer) puzzleLayer.remove();
 /* =========================
    GAME LOOP
    ========================= */
-function update() {
+function update(now = performance.now()) {
   if (!gameStarted || !currentLevel) return;
 
-  if (currentLevel?.flags?.carrying) {
-  player.classList.add("carrying");
-} else {
-  player.classList.remove("carrying");
-}
+  // dt (Sekunden) berechnen
+  if (update._lastTime == null) update._lastTime = now;
+  let dt = (now - update._lastTime) / 1000;
+  update._lastTime = now;
 
-  // Movement (optional gelockt)
-let vx = 0, vy = 0;
+  // dt begrenzen (Tab-Wechsel / Lags)
+  if (dt > 0.05) dt = 0.05; // max 50ms
 
-if (!PLAYER_LOCKED) {
-  if (keys.right) vx += SPEED;
-  if (keys.left) vx -= SPEED;
-  if (keys.down) vy += SPEED;
-  if (keys.up) vy -= SPEED;
-}
+  if (currentLevel?.flags?.carrying) player.classList.add("carrying");
+  else player.classList.remove("carrying");
 
+  // Movement (px pro Sekunde * dt)
+  let vx = 0, vy = 0;
+  if (!PLAYER_LOCKED) {
+  if (keys.right) vx += SPEED * dt;
+  if (keys.left)  vx -= SPEED * dt;
+  if (keys.down)  vy += SPEED * dt;
+  if (keys.up)    vy -= SPEED * dt;
+
+  // optional: diagonal normalisieren (damit diagonal nicht schneller ist)
+  const len = Math.hypot(vx, vy);
+  if (len > 0) {
+    const max = SPEED * dt;
+    vx = (vx / len) * max;
+    vy = (vy / len) * max;
+  }
 
   const hitOX = (player.clientWidth - PLAYER_HIT.w) / 2;
   const hitOY = (player.clientHeight - PLAYER_HIT.h) / 2;
@@ -823,7 +877,9 @@ if (!PLAYER_LOCKED) {
 
   player.style.transform = `translate(${px}px, ${py}px)`;
 
-  // Tile Change -> Trigger
+  // =========================
+  // Tile Change -> Trigger (WIEDER DRIN!)
+  // =========================
   const { tx: ptx, ty: pty } = getPlayerTilePos();
   if (update._lastTx !== ptx || update._lastTy !== pty) {
     update._lastTx = ptx;
@@ -834,27 +890,41 @@ if (!PLAYER_LOCKED) {
     }
   }
 
-  // Levelwechsel
-  const tileHere = getTileAt(currentLevel, ptx, pty);
+  // =========================
+  // Levelwechsel (WIEDER DRIN!)
+  // =========================
+const tileHere = getTileAt(currentLevel, ptx, pty);
 
-  // Level 1 -> Level 2
-  if (tileHere === "Z" && window.LEVEL2 && currentLevel.id !== "level2") {
-    loadLevel(window.LEVEL2);
-    requestAnimationFrame(update);
-    return;
-  }
+// Level 1 -> Level 2
+if (tileHere === "Z" && window.LEVEL2 && currentLevel.id === "level1") {
+  loadLevel(window.LEVEL2);
+  requestAnimationFrame(update);
+  return;
+}
 
-  // Level 2 -> Level 3
-  if (tileHere === "Y" && window.LEVEL3 && currentLevel.id === "level2") {
-    loadLevel(window.LEVEL3);
-    requestAnimationFrame(update);
-    return;
-  }
+// Level 2 -> Level 3
+if (tileHere === "Y" && window.LEVEL3 && currentLevel.id === "level2") {
+  loadLevel(window.LEVEL3);
+  requestAnimationFrame(update);
+  return;
+}
 
-  // Enemies bewegen
+// Level 3 -> Level 4
+if (tileHere === "Q" && window.LEVEL4 && currentLevel.id === "level3") {
+  loadLevel(window.LEVEL4);
+  requestAnimationFrame(update);
+  return;
+}
+
+
+  // =========================
+  // Enemies bewegen (WIEDER DRIN!)
+  // =========================
   for (const e of enemies) updateEnemy(e);
 
-  // Enemy collision -> restart
+  // =========================
+  // Enemy collision -> restart (WIEDER DRIN!)
+  // =========================
   if (performance.now() > SAFE_UNTIL) {
     const p = getPlayerHitRect();
     for (const e of enemies) {
