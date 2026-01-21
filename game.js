@@ -21,7 +21,7 @@ let TILE = 32;
 /* =========================
    SETTINGS
    ========================= */
-const SPEED = 4;
+const SPEED = 240;
 
 // Player Hitbox
 const PLAYER_HIT = { w: 40, h: 60 };
@@ -194,7 +194,9 @@ document.addEventListener("keydown", (e) => {
     gameStarted = true;
     startScreen.classList.add("startscreen-hide");
     loadLevel(window.LEVEL1);
+    update._lastTime = null;
     requestAnimationFrame(update);
+
     return;
   }
 
@@ -671,6 +673,7 @@ if (puzzleLayer) puzzleLayer.remove();
   px = spawn.tx * TILE + (TILE - player.clientWidth) / 2;
   py = spawn.ty * TILE + (TILE - player.clientHeight) / 2;
   player.style.transform = `translate(${px}px, ${py}px)`;
+  update._lastTime = null; // wichtig nach loadLevel
 
   // Enemies spawnen
   for (const s of wolfSpawns) spawnEnemy("wolf", s.tx, s.ty);
@@ -704,21 +707,34 @@ if (puzzleLayer) puzzleLayer.remove();
 /* =========================
    GAME LOOP
    ========================= */
-function update() {
+function update(now = performance.now()) {
   if (!gameStarted || !currentLevel) return;
 
-  if (currentLevel?.flags?.carrying) {
-  player.classList.add("carrying");
-} else {
-  player.classList.remove("carrying");
-}
+  // dt (Sekunden) berechnen
+  if (update._lastTime == null) update._lastTime = now;
+  let dt = (now - update._lastTime) / 1000;
+  update._lastTime = now;
 
-  // Movement
+  // dt begrenzen (Tab-Wechsel / Lags)
+  if (dt > 0.05) dt = 0.05; // max 50ms
+
+  if (currentLevel?.flags?.carrying) player.classList.add("carrying");
+  else player.classList.remove("carrying");
+
+  // Movement (px pro Sekunde * dt)
   let vx = 0, vy = 0;
-  if (keys.right) vx += SPEED;
-  if (keys.left) vx -= SPEED;
-  if (keys.down) vy += SPEED;
-  if (keys.up) vy -= SPEED;
+  if (keys.right) vx += SPEED * dt;
+  if (keys.left)  vx -= SPEED * dt;
+  if (keys.down)  vy += SPEED * dt;
+  if (keys.up)    vy -= SPEED * dt;
+
+  // optional: diagonal normalisieren (damit diagonal nicht schneller ist)
+  const len = Math.hypot(vx, vy);
+  if (len > 0) {
+    const max = SPEED * dt;
+    vx = (vx / len) * max;
+    vy = (vy / len) * max;
+  }
 
   const hitOX = (player.clientWidth - PLAYER_HIT.w) / 2;
   const hitOY = (player.clientHeight - PLAYER_HIT.h) / 2;
@@ -743,7 +759,9 @@ function update() {
 
   player.style.transform = `translate(${px}px, ${py}px)`;
 
-  // Tile Change -> Trigger
+  // =========================
+  // Tile Change -> Trigger (WIEDER DRIN!)
+  // =========================
   const { tx: ptx, ty: pty } = getPlayerTilePos();
   if (update._lastTx !== ptx || update._lastTy !== pty) {
     update._lastTx = ptx;
@@ -754,7 +772,9 @@ function update() {
     }
   }
 
-  // Levelwechsel
+  // =========================
+  // Levelwechsel (WIEDER DRIN!)
+  // =========================
   const tileHere = getTileAt(currentLevel, ptx, pty);
 
   // Level 1 -> Level 2
@@ -771,10 +791,14 @@ function update() {
     return;
   }
 
-  // Enemies bewegen
+  // =========================
+  // Enemies bewegen (WIEDER DRIN!)
+  // =========================
   for (const e of enemies) updateEnemy(e);
 
-  // Enemy collision -> restart
+  // =========================
+  // Enemy collision -> restart (WIEDER DRIN!)
+  // =========================
   if (performance.now() > SAFE_UNTIL) {
     const p = getPlayerHitRect();
     for (const e of enemies) {
@@ -784,5 +808,3 @@ function update() {
 
   requestAnimationFrame(update);
 }
-
-
