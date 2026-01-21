@@ -45,6 +45,7 @@ let facing = "down"; // "left" | "right" | "up" | "down"
 const keys = { left: false, right: false, up: false, down: false };
 const enemies = []; // {type, el, x,y, homeX,homeY, t, cfg, dir, startX, maxX}
 const cows = [];    // NEU: reine Deko (ohne Hitbox)
+let PLAYER_LOCKED = false // für bearbeitung spiel modus wechseln ( Locked bei Text)
 
 /* =========================
    SPEECH BUBBLE (HUD)
@@ -116,7 +117,23 @@ function showTempMessage(text, ms = 2000, opts = {}) {
   const el = ensureMessageBox();
   const wrap = el._wrap;
 
-  const { typewriter = false, charDelay = 30, x = "50%", y = "50%", center = true } = opts;
+  const {
+    typewriter = false,
+    charDelay = 30,
+    x = "50%",
+    y = "50%",
+    center = true,
+    lockPlayer = false   // 👈 NEU
+  } = opts;
+
+  if (showTempMessage._locked) {
+    PLAYER_LOCKED = false;
+    showTempMessage._locked = false;
+  }
+
+  if (lockPlayer) {
+    PLAYER_LOCKED = true;
+  }
 
   wrap.style.position = "absolute";
   wrap.style.left = typeof x === "number" ? `${x}px` : x;
@@ -130,20 +147,27 @@ function showTempMessage(text, ms = 2000, opts = {}) {
     showTempMessage._typeTimer = null;
   }
 
+  const unlock = () => {
+    if (lockPlayer) PLAYER_LOCKED = false;
+    wrap.style.display = "none";
+  };
+
   if (!typewriter) {
     el.textContent = text;
-    showTempMessage._hideTimer = setTimeout(() => (wrap.style.display = "none"), ms);
+    showTempMessage._hideTimer = setTimeout(unlock, ms);
     return;
   }
 
   el.textContent = "";
   let i = 0;
+
   showTempMessage._typeTimer = setInterval(() => {
     el.textContent += text[i++] ?? "";
+
     if (i >= text.length) {
       clearInterval(showTempMessage._typeTimer);
       showTempMessage._typeTimer = null;
-      showTempMessage._hideTimer = setTimeout(() => (wrap.style.display = "none"), ms);
+      showTempMessage._hideTimer = setTimeout(unlock, ms);
     }
   }, Math.max(0, charDelay));
 }
@@ -151,6 +175,14 @@ function showTempMessage(text, ms = 2000, opts = {}) {
 /* =========================
    UTILS
    ========================= */
+function showIngredientsList() {
+  const el = document.getElementById("side-image");
+  if (!el) return;
+  el.classList.remove("hidden");
+}
+
+
+
 function restartGame() {
   if (restartGame._done) return;
   restartGame._done = true;
@@ -219,6 +251,45 @@ function forceSolveCurrentLevel() {
 }
 
 /* =========================
+   KEY POPUP (Schlüssel gefunden)
+   ========================= */
+function showKeyPopup() {
+  const keyImg = document.createElement("img");
+  keyImg.src = "assets/key.png"; 
+  keyImg.className = "key-popup";
+
+  // Position relativ zum #game Container
+  const playerRect = player.getBoundingClientRect();
+  const gameRect = game.getBoundingClientRect();
+
+  keyImg.style.left =
+    (playerRect.left - gameRect.left) + (playerRect.width / 2) - 20 + "px";
+  keyImg.style.top =
+    (playerRect.top - gameRect.top) - 45 + "px";
+
+  game.appendChild(keyImg);
+
+  setTimeout(() => keyImg.remove(), 1200);
+}
+
+function showArrowsPopup(ms = 2200) {
+  const img = document.createElement("img");
+  img.src = "assets/arrows.png";
+  img.className = "arrow-popup";
+
+  // Position relativ zum #game Container
+  const playerRect = player.getBoundingClientRect();
+  const gameRect = game.getBoundingClientRect();
+
+  // mittig über dem Kopf (Werte ggf. feinjustieren)
+  img.style.left = (playerRect.left - gameRect.left) + (playerRect.width / 2) - 40 + "px";
+  img.style.top  = (playerRect.top - gameRect.top) - 80 + "px";
+
+  game.appendChild(img);
+  setTimeout(() => img.remove(), ms);
+}
+
+/* =========================
    INPUT
    ========================= */
 document.addEventListener("keydown", (e) => {
@@ -228,6 +299,11 @@ document.addEventListener("keydown", (e) => {
     gameStarted = true;
     startScreen.classList.add("startscreen-hide");
     loadLevel(window.LEVEL1);
+      // Arrow-Hint direkt nach Spawn (1 Frame warten, damit Position stimmt)
+     // 3 Sekunden warten, dann Pfeile anzeigen
+    setTimeout(() => {
+    showArrowsPopup(2200);
+  }, 1200);
     update._lastTime = null;
     requestAnimationFrame(update);
 
@@ -764,6 +840,7 @@ function update(now = performance.now()) {
 
   // Movement (px pro Sekunde * dt)
   let vx = 0, vy = 0;
+  if (!PLAYER_LOCKED) {
   if (keys.right) vx += SPEED * dt;
   if (keys.left)  vx -= SPEED * dt;
   if (keys.down)  vy += SPEED * dt;
@@ -857,3 +934,4 @@ if (tileHere === "Q" && window.LEVEL4 && currentLevel.id === "level3") {
 
   requestAnimationFrame(update);
 }
+
