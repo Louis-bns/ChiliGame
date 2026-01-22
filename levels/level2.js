@@ -74,11 +74,11 @@
       "001000000000001000000000000000000000000000100",
       "0011111111000011111100000000000F0000000001100",
       "001000000000000000000000000000000000000000100",
-      "0010000000000000000000000000000000000000001Y0",
+      "001000000000000000000000000000000000000000100",
+      "0010HHHHHH00000000000000000000000000000000UY0",
       "0010HHHHHH000000000000000000000000000000NNUY0",
       "0010HHHHHH000000000000000000000000000000NNUY0",
-      "0010HHHHHH000000000000000000000000000000NNUY0",
-      "0010HHHHHH000000000000000000000000000000NN111",
+      "0010HHHHHH00000000000000000000000000000000111",
       "111111111111111111111000011111111111111111111",
       "1YYYY0000000000000000000000000000000000000001",
       "1YYYY0000000000000000000000000000000000000001",
@@ -90,7 +90,9 @@
 
     _spentTriggers: new Set(),
 
-    flags: {},
+    flags: {  uUnlocked: false,     // U bleibt solid bis N nach Phase6 triggert
+  hackCollected: false  // damit Hack nur einmal eingesammelt wird
+ },
 
     getTile(tx, ty) {
       if (tx < 0 || ty < 0 || tx >= this.cols || ty >= this.rows) return "1";
@@ -100,13 +102,14 @@
     },
 
     isSolid(tx, ty) {
-      const t = this.getTile(tx, ty);
-      if (t === "1") return true;
-      if (t === "U" && phase < 6) {
-  // N darf betreten werden
+  const t = this.getTile(tx, ty);
+  if (t === "1") return true;
+
+  // U ist solid, bis wir es explizit freischalten (nach Fade + N Trigger)
+  if (t === "U" && !this.flags?.uUnlocked) return true;
+
   return false;
-}
-    },
+},
 
     checkTriggers(playerTx, playerTy, ctx) {
       const t = this.getTile(playerTx, playerTy);
@@ -114,12 +117,22 @@
       if (this._spentTriggers.has(key)) return;
 
       if ([1, 2, 3, 4, 5].includes(phase) && t === "N") {
-        this._spentTriggers.add(key);
+  this._spentTriggers.add(key);
+  if (ctx?.showTempMessage) msg(ctx.showTempMessage, "ohne hack nicht weiter");
+  return;
+}
 
-        if (ctx?.showTempMessage) {
-          msg(ctx.showTempMessage, "ohne hack nicht weiter");
-        }
-      }
+// N nach der Schwarzblende: neue Message + U freischalten
+if (phase >= 6 && t === "N") {
+  this._spentTriggers.add(key);
+
+ 
+
+  if (ctx?.showTempMessage) {
+    msg(ctx.showTempMessage, "Sammle das Hack ein");
+  }
+  return;
+}
     },
 
     interactions: {
@@ -185,9 +198,37 @@
 
       // Container (H) - NEU: ab Phase 6 "voll mit hack"
       "H": (ctx) => {
-        if (phase >= 6) return msg(ctx.showTempMessage, "voll mit hack");
-        return msg(ctx.showTempMessage, "Container leer");
-      },
+  if (phase < 6) {
+    return msg(ctx.showTempMessage, "Container leer");
+  }
+
+  const L = ctx.level || window.LEVEL2;
+  L.flags = L.flags || {};
+
+  // Hack nur einmal einsammeln
+  if (!L.flags.hackCollected) {
+    L.flags.hackCollected = true;
+
+    // ✅ U erst JETZT freigeben
+    L.flags.uUnlocked = true;
+
+    // Popup über Player
+    if (typeof window.showItemPopup === "function") {
+      window.showItemPopup("assets/Hack.png");
+    }
+
+    // Liste2
+    if (typeof window.setListStep === "function") {
+      window.setListStep(2);
+    } else if (typeof setListStep === "function") {
+      setListStep(2);
+    }
+
+    return msg(ctx.showTempMessage, "Hack eingesammelt");
+  }
+
+  return msg(ctx.showTempMessage, "voll mit hack");
+},
 
       "I": (ctx) => handleItemInteract(ctx, "I"),
       "2": (ctx) => handleItemInteract(ctx, "2"),
@@ -264,7 +305,6 @@
         phase = 6;
         applyPhase6WorldChanges(ctx?.level, ctx);
       });
-      setListStep(2); // Liste2.png
       return;
     }
 
