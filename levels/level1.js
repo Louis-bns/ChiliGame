@@ -158,13 +158,13 @@
     // Zutatenliste erst nach Oma-Gespräch zeigen (einmalig)
         if (!level.flags.ingredientsShown) {
           level.flags.ingredientsShown = true;
-          setListStep(1); // Liste1.png anzeigen
         }
 
         showTempMessage("I started cooking CHILI CON CARNE, but I am missing almost all ingriedients..",8000,  { typewriter: true, charDelay: 26, lockPlayer: true });
         setTimeout(() => {
         showTempMessage("Here.. take that list and get me the missing ones..",3000,{ typewriter: true, charDelay: 26, lockPlayer: true }
           );
+          setListStep(1); // Liste1.png anzeigen
         }, 6000); // minimal länger als 2500ms
       
       } else {
