@@ -264,6 +264,7 @@
         phase = 6;
         applyPhase6WorldChanges(ctx?.level, ctx);
       });
+      setListStep(2); // Liste2.png
       return;
     }
 
