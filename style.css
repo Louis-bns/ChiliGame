@@ -49,12 +49,14 @@ body {
 }
 
 #game-wrap {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 24px;           /* Abstand zwischen Liste und Game */
+  position: relative;
+
+  /* Spielfeldgröße fix */
+  width: calc(var(--cols) * 32px);
+  height: calc(var(--rows) * 32px);
+
+  /* Spielfeld bleibt sauber zentriert */
   margin: 20px auto;
-  width: max-content; /* passt sich Inhalt an */
 }
 
 /* =========================================================
@@ -62,8 +64,15 @@ body {
    ========================================================= */
 
 #side-image {
+  position: absolute;
+  top: 0;
+
+  /* links neben das Spielfeld schieben:
+     520px Liste + 24px gap -> -544px */
+  left: calc(-520px - 24px);
+
   width: 520px;
-  flex-shrink: 0;
+  height: 100%;
 
   opacity: 1;
   transform: translateX(0);
@@ -79,7 +88,6 @@ body {
   display: block;
 }
 
-/* Startzustand: unsichtbar + etwas weiter links */
 #side-image.hidden {
   opacity: 0;
   transform: translateX(-40px);
@@ -87,10 +95,15 @@ body {
 
 /* Game */
 #game {
-  position: relative;
+  position: absolute; /* <<< FIX: absolute statt absulute */
+  left: 0;
+  top: 0;
+
   width: calc(var(--cols) * 32px);
   height: calc(var(--rows) * 32px);
-  margin: 20px auto;
+
+  /* WICHTIG: margin entfernen, sonst verschiebt er sich innerhalb wrapper */
+  margin: 0;
 
   background-image: url('assets/Intro lvl.png');
   background-size: cover;
@@ -140,7 +153,9 @@ body {
 #player.walk-right { background-position-y: 0;      animation: walk 0.5s steps(4) infinite; }
 #player.walk-left  { background-position-y: -128px; animation: walk 0.5s steps(4) infinite; }
 #player.walk-up,
-#player.walk-down  { background-position-y: 0;      animation: walk 0.5s steps(4) infinite; }
+#player.walk-down {
+  animation: walk 0.5s steps(4) infinite;
+}
 
 /* Templates verstecken */
 #batTpl, #wolfTpl { display: none; }
