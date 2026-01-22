@@ -36,7 +36,7 @@
 
     cows: { cow: true },
 
-    enemies: { bat: false, wolf: false },
+    enemies: { bat: true, wolf: false },
 
     renderWalls: false,
 
@@ -106,14 +106,17 @@
       return false;
     },
 
-    checkTriggers(playerTx, playerTy) {
+    checkTriggers(playerTx, playerTy, ctx) {
       const t = this.getTile(playerTx, playerTy);
       const key = `${t}:${playerTx},${playerTy}`;
       if (this._spentTriggers.has(key)) return;
 
       if ([1, 2, 3, 4, 5].includes(phase) && t === "N") {
         this._spentTriggers.add(key);
-        msg(ctx.showTempMessage, "ohne hack nicht weiter");
+
+        if (ctx?.showTempMessage) {
+          msg(ctx.showTempMessage, "ohne hack nicht weiter");
+        }
       }
     },
 
@@ -369,6 +372,13 @@
         } else {
           itemHeld = candidate;
           pendingPickup = null;
+
+          // Popup-Bild über Player anzeigen
+          if (typeof window.showItemPopup === "function") {
+            if (tile === "I") window.showItemPopup("assets/gummi.png");
+            if (tile === "2") window.showItemPopup("assets/heu.png");
+            if (tile === "3") window.showItemPopup("assets/Karotten.png");
+          }
 
           if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel genommen");
           if (tile === "2") return msg(ctx.showTempMessage, "Heu genommen");

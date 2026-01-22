@@ -272,6 +272,28 @@ function showKeyPopup() {
   setTimeout(() => keyImg.remove(), 1200);
 }
 
+/* =========================
+   Item POPUP 
+   ========================= */
+function showItemPopup(src, ms = 1200) {
+  const img = document.createElement("img");
+  img.src = src;
+  img.className = "key-popup"; // gleiche CSS/Animation wie Schlüssel damit man keine neue CSS braucht
+
+  // Position relativ zum #game Container (gleich wie showKeyPopup)
+  const playerRect = player.getBoundingClientRect();
+  const gameRect = game.getBoundingClientRect();
+
+  img.style.left =
+    (playerRect.left - gameRect.left) + (playerRect.width / 2) - 20 + "px";
+  img.style.top =
+    (playerRect.top - gameRect.top) - 45 + "px";
+
+  game.appendChild(img);
+  setTimeout(() => img.remove(), ms);
+}
+window.showItemPopup = showItemPopup;
+
 function showArrowsPopup(ms = 2200) {
   const img = document.createElement("img");
   img.src = "assets/arrows.png";
@@ -802,15 +824,22 @@ if (puzzleLayer) puzzleLayer.remove();
   SAFE_UNTIL = performance.now() + 1200;
 
   // Trigger am Spawn
-  const { tx: spawnTx, ty: spawnTy } = getPlayerTilePos();
-  if (typeof currentLevel.checkTriggers === "function") {
-    currentLevel.checkTriggers(spawnTx, spawnTy);
-  }
+const { tx: spawnTx, ty: spawnTy } = getPlayerTilePos();
 
-  update._lastTx = spawnTx;
-  update._lastTy = spawnTy;
+if (typeof currentLevel.checkTriggers === "function") {
+  currentLevel.checkTriggers(spawnTx, spawnTy, {
+    level: currentLevel,
+    showTempMessage,
+    playerEl: player,
+    gameEl: game,
+    facing
+  });
+}
 
-  if (typeof currentLevel.onLoad === "function") {
+update._lastTx = spawnTx;
+update._lastTy = spawnTy;
+
+if (typeof currentLevel.onLoad === "function") {
   currentLevel.onLoad({
     level: currentLevel,
     showTempMessage,
@@ -818,8 +847,9 @@ if (puzzleLayer) puzzleLayer.remove();
     gameEl: game
   });
 }
-
 }
+
+
 
 /* =========================
    GAME LOOP
@@ -889,7 +919,13 @@ function update(now = performance.now()) {
     update._lastTx = ptx;
     update._lastTy = pty;
     if (typeof currentLevel.checkTriggers === "function") {
-      currentLevel.checkTriggers(ptx, pty);
+      currentLevel.checkTriggers(ptx, pty, {
+  level: currentLevel,
+  showTempMessage,
+  playerEl: player,
+  gameEl: game,
+  facing
+});
     }
   }
 
