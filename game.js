@@ -17,6 +17,24 @@ let gameStarted = false;
 let currentLevel = null;
 let wallGrid = null; // 2D boolean [row][col]
 let TILE = 32;
+let HAS_GUN = false;
+const bullets = []; // { el, x, y, vx, vy, born }
+const BULLET_SPEED = 900;      // px/s
+const BULLET_LIFETIME = 1200;  // ms
+const SHOOT_COOLDOWN = 140;    // ms
+let _lastShotAt = 0;
+// Truhen
+const gunChests = new Map(); // key "tx,ty" -> { el, tx, ty }
+let bossChest = null;        // { el, tx, ty }
+
+/* =========================
+   BOSS STATE
+   ========================= */
+let boss = null; // { el, x,y, vx,vy, dirX, dirY, speed, baseSpeed, scale, nextTurnAt, nextShotAt }
+const bossFireballs = []; // { el, x,y, vx,vy, born }
+const BOSS_FIREBALL_SPEED = 520;   // px/s
+const BOSS_FIREBALL_LIFETIME = 2400; // ms
+const BOSS_HIT_BASE = { w: 54, h: 54, ox: 5, oy: 5 }; // Boss 64x64 -> fairer Hit
 
 /* =========================
    SETTINGS
@@ -45,7 +63,7 @@ let facing = "down"; // "left" | "right" | "up" | "down"
 const keys = { left: false, right: false, up: false, down: false };
 const enemies = []; // {type, el, x,y, homeX,homeY, t, cfg, dir, startX, maxX}
 const cows = [];    // NEU: reine Deko (ohne Hitbox)
-let PLAYER_LOCKED = false // für bearbeitung spiel modus wechseln ( Locked bei Text)
+let PLAYER_LOCKED = false; // für bearbeitung spiel modus wechseln ( Locked bei Text)
 
 /* =========================
    SPEECH BUBBLE (HUD)
@@ -175,12 +193,48 @@ function showTempMessage(text, ms = 2000, opts = {}) {
 /* =========================
    UTILS
    ========================= */
+// =========================
+// INGREDIENT LIST (PNG SWAP)
+// =========================
+let LIST_STEP = 1;           // 1 = Liste1.png (leer)
+const LIST_MIN = 1;
+const LIST_MAX = 20;
+
 function showIngredientsList() {
   const el = document.getElementById("side-image");
   if (!el) return;
   el.classList.remove("hidden");
 }
 
+function setListStep(step) {
+  LIST_STEP = Math.max(LIST_MIN, Math.min(LIST_MAX, step));
+
+  showIngredientsList(); // blendet die Box ein
+
+  const img =
+    document.getElementById("listImg") ||
+    document.querySelector("#side-image img");
+
+  if (!img) return;
+
+  img.src = `assets/Liste${LIST_STEP}.png`;
+}
+
+function advanceListStep() {
+  setListStep(LIST_STEP + 1);
+}
+
+function unequipGun() {
+  HAS_GUN = false;
+  player.classList.remove("gun"); // Sprite zurück auf Koch.png (Default CSS)
+  _lastShotAt = 0;
+
+  // optional: alle noch fliegenden Corn-Bullets entfernen
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    bullets[i].el?.remove();
+    bullets.splice(i, 1);
+  }
+}
 
 
 function restartGame() {
@@ -192,6 +246,210 @@ function restartGame() {
 function rectsOverlap(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
+
+function getBossRect() {
+  const boss = document.getElementById("boss");
+  if (!boss) return null;
+
+  // Boss-Position relativ zum #game Container
+  const b = boss.getBoundingClientRect();
+  const g = game.getBoundingClientRect();
+
+  return {
+    x: b.left - g.left,
+    y: b.top - g.top,
+    w: b.width,
+    h: b.height
+  };
+}
+
+function keyXY(tx, ty) { return `${tx},${ty}`; }
+
+function spawnChestAtTile(tx, ty, { z = 20, scale = 2, className = "" } = {}) {
+  const el = document.createElement("div");
+  el.className = `tile-chest ${className}`.trim();
+  el.style.left = (tx * TILE) + "px";
+  el.style.top  = (ty * TILE) + "px";
+  el.style.zIndex = String(z);
+
+  // tile-chest hat schon scale(2) in CSS – wenn du variabel willst:
+  // wir setzen hier per transform direkt (überschreibt CSS)
+  el.style.transform = `translate(-6px, -6px) scale(${scale})`;
+
+  game.appendChild(el);
+  return el;
+}
+
+function setTileChar(level, tx, ty, ch) {
+  const row = level.walls[ty];
+  if (!row) return;
+  level.walls[ty] = row.substring(0, tx) + ch + row.substring(tx + 1);
+}
+
+function unlockBossExit(level) {
+  if (!level) return;
+
+  // Flag (falls du es im Level brauchst)
+  level.flags = level.flags || {};
+  level.flags.bossLooted = true;
+
+  // Unsichtbare Wände entfernen: wir nutzen Tile "V" als Invisible Block
+  // (siehe Patch in LEVEL4 weiter unten)
+  if (Array.isArray(level.walls)) {
+    level.walls = level.walls.map(r => r.replaceAll("V", "0"));
+  }
+
+  showTempMessage("Ein Mechanismus klickt... Der Weg ist frei!", 1600, { typewriter: true, charDelay: 18 });
+}
+
+
+function spawnGunChestsFromP(level) {
+  gunChests.clear();
+  // alte P-Truhen (falls Level reload)
+  document.querySelectorAll(".gun-chest").forEach(el => el.remove());
+
+  for (let ty = 0; ty < level.rows; ty++) {
+    const row = level.walls[ty];
+    for (let tx = 0; tx < level.cols; tx++) {
+      if (row[tx] === "P") {
+        const el = spawnChestAtTile(tx, ty, { className: "gun-chest", z: 21, scale: 2 });
+        gunChests.set(keyXY(tx, ty), { el, tx, ty });
+      }
+    }
+  }
+}
+
+function pickupGunFromChest(level, tx, ty) {
+  if (HAS_GUN) return;
+
+  // 🔥 NEU: Level 4 Corn-Chest setzt explizit Liste4
+  if (currentLevel?.id === "level4") {
+    setListStep(4); // Liste4.png
+  }
+
+  HAS_GUN = true;
+  player.classList.add("gun");
+  showTempMessage(
+    "Maiskolben-Pistole aufgenommen!",
+    1500,
+    { typewriter: true, charDelay: 18 }
+  );
+
+  // Truhe entfernen
+  const k = keyXY(tx, ty);
+  const chest = gunChests.get(k);
+  if (chest?.el) chest.el.remove();
+  gunChests.delete(k);
+
+  setTileChar(level, tx, ty, "0");
+}
+
+
+
+function shootCorn() {
+  if (!HAS_GUN) return;
+
+  const now = performance.now();
+  if (now - _lastShotAt < SHOOT_COOLDOWN) return;
+  _lastShotAt = now;
+
+  // Startpunkt: Mitte der Player-Hitbox
+  const p = getPlayerHitRect();
+  let x = p.x + p.w / 2 - 5;
+  let y = p.y + p.h / 2 - 5;
+
+  // Richtung aus facing
+  let dx = 0, dy = 0;
+  if (facing === "right") dx = 1;
+  else if (facing === "left") dx = -1;
+  else if (facing === "up") dy = -1;
+  else dy = 1;
+
+  // minimaler Offset, damit Bullet nicht im Player steckt
+  x += dx * 18;
+  y += dy * 18;
+
+  const el = document.createElement("div");
+  el.className = "corn-bullet";
+  game.appendChild(el);
+
+  const b = {
+    el,
+    x,
+    y,
+    vx: dx * BULLET_SPEED,
+    vy: dy * BULLET_SPEED,
+    born: now
+  };
+
+  bullets.push(b);
+  el.style.transform = `translate(${b.x}px, ${b.y}px)`;
+}
+
+function updateBullets(dt) {
+  if (!bullets.length) return;
+
+  const bossRect = getBossRect();
+
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    const b = bullets[i];
+
+    // Lifetime
+    if (performance.now() - b.born > BULLET_LIFETIME) {
+      b.el.remove();
+      bullets.splice(i, 1);
+      continue;
+    }
+
+    // Move
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+
+    // Wall collision (10x10 Bullet)
+    if (rectIntersectsWall(b.x, b.y, 10, 10)) {
+      b.el.remove();
+      bullets.splice(i, 1);
+      continue;
+    }
+
+   // Boss collision (wenn vorhanden)
+if (bossRect) {
+  const br = { x: b.x, y: b.y, w: 10, h: 10 };
+  if (rectsOverlap(br, bossRect)) {
+
+    // HP default 20
+    window.BOSS_HP = (typeof window.BOSS_HP === "number") ? window.BOSS_HP : 20;
+    window.BOSS_HP -= 1;
+    updateBossHpBar();
+
+
+    showTempMessage(`Treffer! Boss HP: ${window.BOSS_HP}`, 700);
+
+    // Bullet weg
+    b.el.remove();
+    bullets.splice(i, 1);
+
+    // Boss dead
+    if (window.BOSS_HP <= 0) {
+      // Kiste da spawnen wo er stirbt
+      spawnChestAtBoss();
+
+      const bossEl = document.getElementById("boss");
+      if (bossEl) bossEl.remove();
+      boss = null;
+      unequipGun();
+      showTempMessage("Boss besiegt!", 1500, { typewriter: true, charDelay: 18 });
+    }
+
+    continue;
+  }
+}
+
+
+    b.el.style.transform = `translate(${b.x}px, ${b.y}px)`;
+  }
+}
+
 
 function getPlayerHitRect() {
   const hitOX = (player.clientWidth - PLAYER_HIT.w) / 2;
@@ -318,12 +576,20 @@ document.addEventListener("keydown", (e) => {
   }
 
 
-  // SPACE interact
-  if ((k === " " || e.code === "Space") && gameStarted) {
-    e.preventDefault();
-    handleInteract();
-    return;
-  }
+// SPACE = shoot (wenn Waffe), sonst Interact
+if ((k === " " || e.code === "Space") && gameStarted) {
+  e.preventDefault();
+  if (HAS_GUN) shootCorn();
+  else handleInteract();
+  return;
+}
+
+// OPTIONAL: Interact zusätzlich auf "E"
+if (k === "e" && gameStarted) {
+  e.preventDefault();
+  handleInteract();
+  return;
+}
 
   // DEBUG: Shift + L = Level sofort lösen
 if (e.shiftKey && e.key.toLowerCase() === "l") {
@@ -388,8 +654,33 @@ function getPlayerTilePos() {
 
 function handleInteract() {
   if (!currentLevel) return;
-
   const { tx, ty } = getPlayerTilePos();
+
+  // 0) Boss-Truhe öffnen (falls vorhanden)
+ if (bossChest && bossChest.tx === tx && bossChest.ty === ty) {
+  showTempMessage("Du öffnest die Truhe...\nDu hast die 🌶️ Chilischote gefunden!", 2600, {
+    typewriter: true, charDelay: 18, x: "50%", y: "50%", center: true
+  });
+
+  // Liste weiter (z.B. nach Chili)
+setListStep(5); // 🌶️ Chili = Liste5.png
+
+  // Exit freischalten (unsichtbare Wand entfernen)
+  unlockBossExit(currentLevel);
+
+  bossChest.el.remove();
+  bossChest = null;
+  return;
+}
+
+
+  // 0b) P-Truhe (Gun) öffnen
+  const pTile = getTileAt(currentLevel, tx, ty);
+  if (pTile === "P" && !HAS_GUN) {
+    pickupGunFromChest(currentLevel, tx, ty);
+    return;
+  }
+
   const tile = getTileAt(currentLevel, tx, ty);
 
   // 1) Wenn es eine direkte Interaktion für das Tile gibt (z.B. K, F, M, ...)
@@ -512,6 +803,309 @@ function clearCows() {
   for (const c of cows) c.el.remove();
   cows.length = 0;
 }
+
+/* =========================
+   BOSS: SPAWN / CLEAR
+   ========================= */
+function clearBoss() {
+  if (boss?.el) boss.el.remove();
+  boss = null;
+
+  for (const f of bossFireballs) f.el.remove();
+  bossFireballs.length = 0;
+}
+
+function getBossCfg(level) {
+  const cfg = level?.boss || {};
+  return {
+    enabled: cfg.enabled === true,
+    tx: typeof cfg.tx === "number" ? cfg.tx : 22,
+    ty: typeof cfg.ty === "number" ? cfg.ty : 22,
+    scale: typeof cfg.scale === "number" ? cfg.scale : 3,
+    speed: typeof cfg.speed === "number" ? cfg.speed : 210, // px/s
+    turnMinMs: typeof cfg.turnMinMs === "number" ? cfg.turnMinMs : 600,
+    turnMaxMs: typeof cfg.turnMaxMs === "number" ? cfg.turnMaxMs : 1600,
+    shotMinMs: typeof cfg.shotMinMs === "number" ? cfg.shotMinMs : 900,
+    shotMaxMs: typeof cfg.shotMaxMs === "number" ? cfg.shotMaxMs : 2600
+  };
+}
+
+function spawnBossFromLevel(level) {
+  clearBoss();
+
+  const cfg = getBossCfg(level);
+  if (!cfg.enabled) return;
+
+  const el = document.getElementById("bossTpl").cloneNode(false);
+  el.id = "boss";
+  el.style.display = "block";
+  game.appendChild(el);
+
+  // initial HP
+  window.BOSS_HP = 20;
+
+  // Position: tile-centered
+  const x = cfg.tx * TILE + (TILE - 64 * cfg.scale) / 2;
+  const y = cfg.ty * TILE + (TILE - 64 * cfg.scale) / 2;
+
+  boss = {
+    el,
+    x, y,
+    vx: 0, vy: 0,
+    dirX: 1, dirY: 0,
+    scale: cfg.scale,
+    baseSpeed: cfg.speed,
+    speed: cfg.speed,
+    nextTurnAt: performance.now() + 200,
+    nextShotAt: performance.now() + 600,
+    turnMinMs: cfg.turnMinMs,
+    turnMaxMs: cfg.turnMaxMs,
+    shotMinMs: cfg.shotMinMs,
+    shotMaxMs: cfg.shotMaxMs,
+  };
+
+    // HP-Bar DOM
+  const hpWrap = document.createElement("div");
+  hpWrap.className = "boss-hp-wrap";
+
+  const hpFill = document.createElement("div");
+  hpFill.className = "boss-hp-fill";
+
+  hpWrap.appendChild(hpFill);
+  el.appendChild(hpWrap);
+
+  boss._hpFill = hpFill;
+  boss._hpMax = 20;
+  updateBossHpBar();
+
+
+  setBossDir(1, 0);
+  applyBossTransform();
+}
+
+function updateBossHpBar() {
+  if (!boss || !boss._hpFill) return;
+
+  const hp = (typeof window.BOSS_HP === "number") ? window.BOSS_HP : 20;
+  const max = boss._hpMax || 20;
+
+  const pct = Math.max(0, Math.min(1, hp / max));
+  boss._hpFill.style.width = (pct * 100) + "%";
+
+  // optional: Farbwechsel je nach HP
+  if (pct > 0.5) boss._hpFill.style.background = "#2cff3a";
+  else if (pct > 0.25) boss._hpFill.style.background = "#ffd400";
+  else boss._hpFill.style.background = "#ff2a2a";
+}
+
+
+function applyBossTransform() {
+  if (!boss) return;
+  boss.el.style.transformOrigin = "top left";
+  boss.el.style.transform = `translate(${boss.x}px, ${boss.y}px) scale(${boss.scale})`;
+}
+
+function setBossDir(dx, dy) {
+  if (!boss) return;
+  boss.dirX = dx;
+  boss.dirY = dy;
+
+  // Sprite-Reihe wählen: links/rechts
+  boss.el.classList.remove("walk-left", "walk-right", "walk-up", "walk-down");
+
+  if (dx < 0) boss.el.classList.add("walk-left");
+  else if (dx > 0) boss.el.classList.add("walk-right");
+  else {
+    // Wenn nur up/down: behalte last horizontale Richtung, default right
+    if (boss.el.classList.contains("walk-left")) boss.el.classList.add("walk-left");
+    else boss.el.classList.add("walk-right");
+    boss.el.classList.add(dy < 0 ? "walk-up" : "walk-down");
+  }
+
+  // Velocity (random walk)
+  boss.vx = dx * boss.speed;
+  boss.vy = dy * boss.speed;
+}
+
+function bossHitRectAt(x, y) {
+  const s = boss?.scale ?? 1;
+  return {
+    x: x + BOSS_HIT_BASE.ox * s,
+    y: y + BOSS_HIT_BASE.oy * s,
+    w: BOSS_HIT_BASE.w * s,
+    h: BOSS_HIT_BASE.h * s
+  };
+}
+
+function chooseRandomBossDir() {
+  // 4 Richtungen (grid-like). Du kannst hier leicht auf 8 Richtungen erweitern.
+  const dirs = [
+    { dx: 1, dy: 0 },
+    { dx: -1, dy: 0 },
+    { dx: 0, dy: 1 },
+    { dx: 0, dy: -1 },
+  ];
+  return dirs[(Math.random() * dirs.length) | 0];
+}
+
+/* =========================
+   BOSS: UPDATE + FIRE
+   ========================= */
+function updateBoss(dt) {
+  if (!boss) return;
+
+  // Speed-Phase: ab 10 HP verdoppeln
+  const wantedSpeed = (window.BOSS_HP <= 10) ? (boss.baseSpeed * 2) : boss.baseSpeed;
+  if (boss.speed !== wantedSpeed) {
+    boss.speed = wantedSpeed;
+    boss.vx = boss.dirX * boss.speed;
+    boss.vy = boss.dirY * boss.speed;
+  }
+
+  const now = performance.now();
+
+  // Richtungswechsel random
+  if (now >= boss.nextTurnAt) {
+    const d = chooseRandomBossDir();
+    setBossDir(d.dx, d.dy);
+    boss.nextTurnAt = now + (boss.turnMinMs + Math.random() * (boss.turnMaxMs - boss.turnMinMs));
+  }
+
+  // Move mit Wall-Collision (Boss-Hitbox)
+  const tryMove = (nx, ny) => !rectIntersectsWall(
+    bossHitRectAt(nx, ny).x,
+    bossHitRectAt(nx, ny).y,
+    bossHitRectAt(nx, ny).w,
+    bossHitRectAt(nx, ny).h
+  );
+
+  let nx = boss.x + boss.vx * dt;
+  let ny = boss.y + boss.vy * dt;
+
+  // X
+  if (boss.vx !== 0) {
+    if (tryMove(nx, boss.y)) boss.x = nx;
+    else {
+      // Bounce: Richtung invertieren
+      setBossDir(-boss.dirX, 0);
+    }
+  }
+
+  // Y
+  if (boss.vy !== 0) {
+    if (tryMove(boss.x, ny)) boss.y = ny;
+    else {
+      setBossDir(0, -boss.dirY);
+    }
+  }
+
+  applyBossTransform();
+
+  // Player-Kollision => Tod
+  const p = getPlayerHitRect();
+  const br = bossHitRectAt(boss.x, boss.y);
+  if (rectsOverlap(p, br)) {
+    restartGame();
+    return;
+  }
+
+  // Schießen random
+  if (now >= boss.nextShotAt) {
+    bossShootRandomFireball();
+    boss.nextShotAt = now + (boss.shotMinMs + Math.random() * (boss.shotMaxMs - boss.shotMinMs));
+  }
+}
+
+function bossShootRandomFireball() {
+  if (!boss) return;
+
+  // Startpunkt: Boss-Mitte
+  const s = boss.scale;
+  const cx = boss.x + (64 * s) / 2 - 6;
+  const cy = boss.y + (64 * s) / 2 - 6;
+
+  // Random Richtung (8 Wege)
+  const dirs = [
+    { dx: 1, dy: 0 }, { dx: -1, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: -1 },
+    { dx: 1, dy: 1 }, { dx: 1, dy: -1 }, { dx: -1, dy: 1 }, { dx: -1, dy: -1 }
+  ];
+  const d = dirs[(Math.random() * dirs.length) | 0];
+  const len = Math.hypot(d.dx, d.dy) || 1;
+  const dx = d.dx / len;
+  const dy = d.dy / len;
+
+  const el = document.createElement("div");
+  el.className = "boss-fireball";
+  game.appendChild(el);
+
+  const fb = {
+    el,
+    x: cx,
+    y: cy,
+    vx: dx * BOSS_FIREBALL_SPEED,
+    vy: dy * BOSS_FIREBALL_SPEED,
+    born: performance.now()
+  };
+
+  bossFireballs.push(fb);
+  el.style.transform = `translate(${fb.x}px, ${fb.y}px)`;
+}
+
+function updateBossFireballs(dt) {
+  if (!bossFireballs.length) return;
+
+  const p = getPlayerHitRect();
+
+  for (let i = bossFireballs.length - 1; i >= 0; i--) {
+    const f = bossFireballs[i];
+
+    if (performance.now() - f.born > BOSS_FIREBALL_LIFETIME) {
+      f.el.remove();
+      bossFireballs.splice(i, 1);
+      continue;
+    }
+
+    f.x += f.vx * dt;
+    f.y += f.vy * dt;
+
+    // Wall collision (12x12)
+    if (rectIntersectsWall(f.x, f.y, 12, 12)) {
+      f.el.remove();
+      bossFireballs.splice(i, 1);
+      continue;
+    }
+
+    // Player collision
+    const fr = { x: f.x, y: f.y, w: 12, h: 12 };
+    if (rectsOverlap(fr, p)) {
+      restartGame();
+      return;
+    }
+
+    f.el.style.transform = `translate(${f.x}px, ${f.y}px)`;
+  }
+}
+
+/* =========================
+   BOSS: DEATH -> CHEST
+   ========================= */
+function spawnChestAtBoss() {
+  if (!boss) return;
+
+  const s = boss.scale;
+  const cx = boss.x + (64 * s) / 2;
+  const cy = boss.y + (64 * s) / 2;
+
+  const tx = Math.max(0, Math.min(currentLevel.cols - 1, Math.floor(cx / TILE)));
+  const ty = Math.max(0, Math.min(currentLevel.rows - 1, Math.floor(cy / TILE)));
+
+  // falls schon eine Boss-Truhe existiert, erst entfernen
+  if (bossChest?.el) bossChest.el.remove();
+
+  const el = spawnChestAtTile(tx, ty, { className: "boss-chest", z: 22, scale: 2 });
+  bossChest = { el, tx, ty };
+}
+
 
 function removeAllCowDecos() {
   document.querySelectorAll(".cow-deco").forEach(el => el.remove());
@@ -761,6 +1355,7 @@ if (puzzleLayer) puzzleLayer.remove();
   // Enemies aus Markern
   clearEnemies();
   clearCows();
+  clearBoss();
 
   
 
@@ -780,6 +1375,8 @@ if (puzzleLayer) puzzleLayer.remove();
 
   // wallGrid NACH cleanup bauen
   wallGrid = level.walls.map(rowStr => [...rowStr].map(c => c === "1"));
+  spawnGunChestsFromP(level);
+
 
   // Debug-Walls pro Level
   renderDebugWalls(level);
@@ -790,6 +1387,9 @@ if (puzzleLayer) puzzleLayer.remove();
   px = spawn.tx * TILE + (TILE - player.clientWidth) / 2;
   py = spawn.ty * TILE + (TILE - player.clientHeight) / 2;
   player.style.transform = `translate(${px}px, ${py}px)`;
+  // Boss nur wenn Level es aktiviert
+spawnBossFromLevel(currentLevel);
+
   update._lastTime = null; // wichtig nach loadLevel
 
   // Enemies spawnen
@@ -914,10 +1514,21 @@ function update(now = performance.now()) {
     return;
   }
 
+  if (tileHere === "S" && window.LEVEL5 && currentLevel.id === "level4") {
+  loadLevel(window.LEVEL5);
+  requestAnimationFrame(update);
+  return;
+}
+
   // =========================
   // Enemies bewegen + Collision (IMMER laufen lassen)
   // =========================
   for (const e of enemies) updateEnemy(e);
+
+  updateBoss(dt);
+updateBossFireballs(dt);
+
+  updateBullets(dt);
 
   if (performance.now() > SAFE_UNTIL) {
     const p = getPlayerHitRect();

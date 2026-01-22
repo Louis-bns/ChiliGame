@@ -103,6 +103,21 @@ body {
   image-rendering: pixelated;
 }
 
+#player.gun {
+  background-image: url("assets/KochGun.png"); /* <- dein neues Sheet */
+}
+
+.corn-bullet {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  image-rendering: pixelated;
+  background: #ffd400;         /* gelb */
+  border: 2px solid #111;      /* pixeliger Look */
+  box-shadow: 2px 2px 0 #000;
+  z-index: 999;
+}
+
 /* Player */
 #player {
   position: absolute;
@@ -284,8 +299,8 @@ body {
 
 .key-popup {
   position: absolute;
-  width: 64px;
-  height: 64px;
+  width: 80px;
+  height: 80px;
   pointer-events: none;
   animation: keyPop 1.2s ease-out forwards;
   z-index: 1000;
@@ -357,4 +372,81 @@ body {
 
   transform: translate(-6px, -6px) scale(2);
 
+}
+
+/* =========================
+   BOSS
+   Boss.png: 256x128, 2 Reihen, 4 Frames => Frame 64x64
+   obere Reihe = links laufen
+   untere Reihe = rechts laufen
+   ========================= */
+
+@keyframes boss-walk {
+  from { background-position-x: 0; }
+  to   { background-position-x: -256px; }
+}
+
+.boss {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  z-index: 12;
+  image-rendering: pixelated;
+
+  background-image: url("assets/Boss.png");
+  background-repeat: no-repeat;
+  background-size: 256px 128px;
+  background-position: 0 0;
+  display: none; /* wird beim Spawn auf block gesetzt */
+}
+
+.boss.walk-left {
+  background-position-y: 0;
+  animation: boss-walk 0.6s steps(4) infinite;
+}
+
+.boss.walk-right {
+  background-position-y: -64px;
+  animation: boss-walk 0.6s steps(4) infinite;
+}
+
+/* optional: hoch/runter nutzt einfach die letzte horizontale Richtung */
+.boss.walk-up  { animation: boss-walk 0.6s steps(4) infinite; }
+.boss.walk-down{ animation: boss-walk 0.6s steps(4) infinite; }
+
+
+/* =========================
+   BOSS FIREBALL
+   ========================= */
+.boss-fireball {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #111;
+  box-shadow: 2px 2px 0 #000;
+  image-rendering: pixelated;
+  z-index: 999;
+  background: #ff5a00; /* Feuerkugel */
+}
+
+/* =========================
+   BOSS HP BAR
+   ========================= */
+.boss .boss-hp-wrap {
+  position: absolute;
+  left: 50%;
+  top: -14px;                 /* über dem Kopf */
+  transform: translateX(-50%);
+  width: 64px;                /* unskaliert, skaliert mit Boss */
+  height: 8px;
+  border: 2px solid #111;
+  background: #2b2b2b;
+  box-shadow: 2px 2px 0 #000;
+  image-rendering: pixelated;
+}
+
+.boss .boss-hp-fill {
+  height: 100%;
+  width: 100%;
+  background: #2cff3a;        /* grün */
 }
