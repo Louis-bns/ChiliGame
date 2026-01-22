@@ -60,6 +60,7 @@ let SAFE_UNTIL = 0;
    ========================= */
 let px = 0, py = 0;
 let facing = "down"; // "left" | "right" | "up" | "down"
+let facingX = "right";   // merkt letzte horizontale Richtung
 const keys = { left: false, right: false, up: false, down: false };
 const enemies = []; // {type, el, x,y, homeX,homeY, t, cfg, dir, startX, maxX}
 const cows = [];    // NEU: reine Deko (ohne Hitbox)
@@ -662,16 +663,28 @@ function getTileAt(level, tx, ty) {
   return row[tx] ?? "1";
 }
 
-function getPlayerTilePos() {
-  // Nutze die Hitbox-Mitte statt Sprite-Mitte -> Interact fühlt sich viel präziser an
+function getPlayerTilePos(biasPx = 0) {
   const hitOX = (player.clientWidth - PLAYER_HIT.w) / 2;
   const hitOY = (player.clientHeight - PLAYER_HIT.h) / 2;
 
-  const cx = px + hitOX + PLAYER_HIT.w / 2;
-  const cy = py + hitOY + PLAYER_HIT.h / 2;
+  let cx = px + hitOX + PLAYER_HIT.w / 2;
+  let cy = py + hitOY + PLAYER_HIT.h / 2;
+
+  // Bias in Blickrichtung (macht Interact/Pushing stabiler)
+  if (biasPx) {
+    let dx = 0, dy = 0;
+    if (facing === "right") dx = 1;
+    else if (facing === "left") dx = -1;
+    else if (facing === "up") dy = -1;
+    else dy = 1;
+
+    cx += dx * biasPx;
+    cy += dy * biasPx;
+  }
 
   return { tx: Math.floor(cx / TILE), ty: Math.floor(cy / TILE) };
 }
+
 
 
 function handleInteract() {
@@ -1500,14 +1513,60 @@ function update(now = performance.now()) {
       const ny = py + vy;
       if (canMoveTo(px, ny)) py = ny;
     }
+player.style.animation = "";
 
-    if (vx > 0) { facing = "right"; setWalkClass(player, "right"); }
-    else if (vx < 0) { facing = "left"; setWalkClass(player, "left"); }
-    else if (vy < 0) { facing = "up"; setWalkClass(player, "up"); }
-    else if (vy > 0) { facing = "down"; setWalkClass(player, "down"); }
-    else setWalkClass(player, null);
+// Facing + Animation + letzte horizontale Richtung
+if (vx > 0) {
+  facing = "right";
+  facingX = "right";
+  setWalkClass(player, "right");   // OBERE Reihe
+}
+else if (vx < 0) {
+  facing = "left";
+  facingX = "left";
+  setWalkClass(player, "left");    // UNTERE Reihe
+}
+else if (vy < 0) {
+  facing = "up";
 
-    player.style.transform = `translate(${px}px, ${py}px)`;
+  // Erst UP setzen (Animation)
+  player.classList.remove("walk-up","walk-down");
+  player.classList.add("walk-up");
+
+  // Und horizontale Reihe beibehalten
+  player.classList.remove("walk-left","walk-right");
+  player.classList.add(facingX === "left" ? "walk-left" : "walk-right");
+}
+else if (vy > 0) {
+  facing = "down";
+
+  player.classList.remove("walk-up","walk-down");
+  player.classList.add("walk-down");
+
+  player.classList.remove("walk-left","walk-right");
+  player.classList.add(facingX === "left" ? "walk-left" : "walk-right");
+}
+
+else {
+  // Idle: keine Animation, aber letzte horizontale Reihe behalten
+  player.classList.remove("walk-up", "walk-down");
+
+  if (facingX === "left") {
+    player.classList.remove("walk-right");
+    player.classList.add("walk-left");   // setzt y=-128px (linke Reihe)
+  } else {
+    player.classList.remove("walk-left");
+    player.classList.add("walk-right");  // setzt y=0 (rechte Reihe)
+  }
+
+  // Animation stoppen + auf Frame 1
+  player.style.animation = "none";
+  player.style.backgroundPositionX = "0px";
+}
+
+
+player.style.transform = `translate(${px}px, ${py}px)`;
+
   }
 
   // =========================

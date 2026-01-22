@@ -15,7 +15,7 @@
       solved: false
     },
 
-    renderWalls: false,
+    renderWalls: true,
 
     // Targets werden beim Laden aus walls herausgescannt, damit sie sichtbar bleiben,
     // auch wenn später ein Block drauf steht.
@@ -219,7 +219,7 @@ for (let ty = 0; ty < this.rows; ty++) {
        ========================= */
 
     onInteract(ctx) {
-    const { tx, ty } = ctx.playerTile;
+    const { tx, ty } = getPlayerTilePos(12);
     const { dx, dy } = this._dir(ctx.facing);
 
 // Truhe: "nah genug" (aktuelles Tile + Umgebung) statt pixelgenau
@@ -252,11 +252,15 @@ if (chestFound) {
 
 
       // 3 Kandidaten: direkt davor, leicht links, leicht rechts
-      const candidates = [
-        { x: tx + dx,           y: ty + dy },
-        { x: tx + dx + dy,      y: ty + dy + dx },
-        { x: tx + dx - dy,      y: ty + dy - dx }
-      ];
+     // 3 Kandidaten: direkt davor, daneben links, daneben rechts (orthogonal!)
+const front = { x: tx + dx, y: ty + dy };
+
+// senkrecht zur Blickrichtung
+const leftSide  = { x: front.x - dy, y: front.y + dx };
+const rightSide = { x: front.x + dy, y: front.y - dx };
+
+const candidates = [ front, leftSide, rightSide ];
+
 
       let bx = null, by = null, block = null;
 
@@ -325,9 +329,9 @@ walls: [
   "100000000000010000000000000000000000000000001",
   "111111110000010000000000000000000001000000001",
   "111111110000010000000000000000000001000000001",
-  "100000000000011111110000111111000001000000001",
-  "100000000000011111110000111111000001000000001",
-  "100000000000010000000000000011000001000000001",
+  "100000000000011111110000111110000001000000001",
+  "100000000000011111110000111110000001000000001",
+  "100000000000010000000000000010000001000000001",
   "100000000000010000000000000011111111000000001",
   "100000011000010000000000000010000000000000001",
   "100000000000010000000000000010000000000000001",
