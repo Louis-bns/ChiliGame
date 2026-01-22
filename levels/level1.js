@@ -123,18 +123,18 @@
       this._spentTriggers.add(key);
 
       if (t === "3") {
-        showTempMessage("'Hey Kid, please get in the kitchen..'", 3000, { typewriter: true, charDelay: 26 });
+        showTempMessage("'Hey Kid, please get in the kitchen..'", 4000, { typewriter: true, charDelay: 26 });
       }
 
       if (t === "4") {
         showTempMessage(
           "Interact with your surroundings using the 'SPACEBAR'.",
-          3000, { typewriter: true, charDelay: 26, lockPlayer: true }
+          4000, { typewriter: true, charDelay: 26, lockPlayer: true }
         );
         setTimeout(() => {
-        showTempMessage("Try talking to Grandma right away",2500,{ typewriter: true, charDelay: 26, lockPlayer: true }
+        showTempMessage("Try talking to Grandma right away",3000,{ typewriter: true, charDelay: 26, lockPlayer: true }
           );
-        }, 2500); // minimal länger als 2500ms
+        }, 4000); // minimal länger als 2500ms
       }
 
       if (t === "7") {
@@ -158,17 +158,17 @@
     // Zutatenliste erst nach Oma-Gespräch zeigen (einmalig)
         if (!level.flags.ingredientsShown) {
           level.flags.ingredientsShown = true;
-          showIngredientsList(); // <- Funktion aus game.js (die das UI einblendet)
+          setListStep(1); // Liste1.png anzeigen
         }
 
         showTempMessage("I started cooking CHILI CON CARNE, but I am missing almost all ingriedients..",8000,  { typewriter: true, charDelay: 26, lockPlayer: true });
         setTimeout(() => {
-        showTempMessage("Here.. take that list and get me the missing ones..",2500,{ typewriter: true, charDelay: 26, lockPlayer: true }
+        showTempMessage("Here.. take that list and get me the missing ones..",3000,{ typewriter: true, charDelay: 26, lockPlayer: true }
           );
-        }, 2500); // minimal länger als 2500ms
+        }, 6000); // minimal länger als 2500ms
       
       } else {
-        showTempMessage("I'm so forgetful", 2000, { typewriter: true, charDelay: 26 });
+        showTempMessage("I'm so forgetful", 3000, { typewriter: true, charDelay: 26 });
       }
     },
 
@@ -198,7 +198,7 @@
 
       "B": ({ level, showTempMessage }) => {
         if (!level.flags.tookKey) {
-          showTempMessage("Vergiss den Schlüssel aus der Schublade nicht", 2000, { typewriter: true, charDelay: 26 });
+          showTempMessage("Don't forget the Key!", 2000, { typewriter: true, charDelay: 26 });
         } else {
           showTempMessage("you can pass now.", 1500);
         }
