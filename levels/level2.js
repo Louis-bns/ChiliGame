@@ -74,11 +74,11 @@
       "001000000000001000000000000000000000000000100",
       "0011111111000011111100000000000F0000000001100",
       "001000000000000000000000000000000000000000100",
-      "0010000000000000000000000000000000000000001Y0",
+      "001000000000000000000000000000000000000000100",
+      "0010HHHHHH00000000000000000000000000000000UY0",
       "0010HHHHHH000000000000000000000000000000NNUY0",
       "0010HHHHHH000000000000000000000000000000NNUY0",
-      "0010HHHHHH000000000000000000000000000000NNUY0",
-      "0010HHHHHH000000000000000000000000000000NN111",
+      "0010HHHHHH00000000000000000000000000000000111",
       "111111111111111111111000011111111111111111111",
       "1YYYY0000000000000000000000000000000000000001",
       "1YYYY0000000000000000000000000000000000000001",
@@ -90,7 +90,9 @@
 
     _spentTriggers: new Set(),
 
-    flags: {},
+    flags: {  uUnlocked: false,     // U bleibt solid bis N nach Phase6 triggert
+  hackCollected: false  // damit Hack nur einmal eingesammelt wird
+ },
 
     getTile(tx, ty) {
       if (tx < 0 || ty < 0 || tx >= this.cols || ty >= this.rows) return "1";
@@ -100,13 +102,14 @@
     },
 
     isSolid(tx, ty) {
-      const t = this.getTile(tx, ty);
-      if (t === "1") return true;
-      if (t === "U" && phase < 6) {
-  // N darf betreten werden
+  const t = this.getTile(tx, ty);
+  if (t === "1") return true;
+
+  // U ist solid, bis wir es explizit freischalten (nach Fade + N Trigger)
+  if (t === "U" && !this.flags?.uUnlocked) return true;
+
   return false;
-}
-    },
+},
 
     checkTriggers(playerTx, playerTy, ctx) {
       const t = this.getTile(playerTx, playerTy);
@@ -114,7 +117,10 @@
       if (this._spentTriggers.has(key)) return;
 
       if ([1, 2, 3, 4, 5].includes(phase) && t === "N") {
-        this._spentTriggers.add(key);
+  this._spentTriggers.add(key);
+  if (ctx?.showTempMessage) msg(ctx.showTempMessage, "ohne hack nicht weiter");
+  return;
+}
 
         if (ctx?.showTempMessage) {
           msg(ctx.showTempMessage, "You forgot the ground Beef!");
@@ -263,7 +269,6 @@
         phase = 6;
         applyPhase6WorldChanges(ctx?.level, ctx);
       });
-      setListStep(2); // Liste2.png
       return;
     }
 
