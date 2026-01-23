@@ -123,12 +123,12 @@
       this._spentTriggers.add(key);
 
       if (t === "3") {
-        showTempMessage("'Hey Kid, please get in the kitchen..'", 4000, { typewriter: true, charDelay: 26 });
+        showTempMessage("'Grandson! Please come the kitchen...'", 4000, { typewriter: true, charDelay: 26 });
       }
 
       if (t === "4") {
         showTempMessage(
-          "Interact with your surroundings using the 'SPACEBAR'.",
+          "Using 'Spacebar', u can interact with your sorroundings",
           4000, { typewriter: true, charDelay: 26, lockPlayer: true }
         );
         setTimeout(() => {
@@ -145,7 +145,7 @@
 
       if (t === "A") {
         if (!this.flags.tookKey) {
-          showTempMessage("'Hey Kid, don't forget the keys..", 3000, { typewriter: true, charDelay: 26 });
+          showTempMessage("'Hey Kid, don't forget the keys...'", 3000, { typewriter: true, charDelay: 26 });
         }
       }
     },
@@ -160,15 +160,15 @@
           level.flags.ingredientsShown = true;
         }
 
-        showTempMessage("I started cooking CHILI CON CARNE, but I am missing almost all ingriedients..",8000,  { typewriter: true, charDelay: 26, lockPlayer: true });
+        showTempMessage("'I started cooking CHILI CON CARNE, but I am missing almost all ingriedients...'",8000,  { typewriter: true, charDelay: 26, lockPlayer: true });
         setTimeout(() => {
-        showTempMessage("Here.. take that list and get me the missing ones..",3000,{ typewriter: true, charDelay: 26, lockPlayer: true }
+        showTempMessage("'Here... please take that list and get me the missing ones...'",3000,{ typewriter: true, charDelay: 26, lockPlayer: true }
           );
           setListStep(1); // Liste1.png anzeigen
         }, 6000); // minimal länger als 2500ms
       
       } else {
-        showTempMessage("I'm so forgetful", 3000, { typewriter: true, charDelay: 26 });
+        showTempMessage("'I'm so forgetful'", 3000, { typewriter: true, charDelay: 26 });
       }
     },
 
@@ -186,7 +186,7 @@
         if (!level.flags.talkedToOma) {
           showTempMessage("Talk to Grandma first", 2000, { typewriter: true, charDelay: 26 });
         } else {
-          showTempMessage("you can pass now", 1500);
+          showTempMessage("You can pass now", 1500);
         }
       },
 
@@ -200,7 +200,7 @@
         if (!level.flags.tookKey) {
           showTempMessage("Don't forget the Key!", 2000, { typewriter: true, charDelay: 26 });
         } else {
-          showTempMessage("you can pass now.", 1500);
+          showTempMessage("You can pass now.", 1500);
         }
       },
     },

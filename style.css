@@ -343,7 +343,7 @@ body {
   pointer-events: none;
   z-index: 1000;
   image-rendering: pixelated;
-  animation: arrowHint 5s ease-out forwards;
+  animation: arrowHint 5s ease-out foarwards;
 }
 
 @keyframes arrowHint {

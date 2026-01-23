@@ -122,27 +122,19 @@
   return;
 }
 
-// N nach der Schwarzblende: neue Message + U freischalten
-if (phase >= 6 && t === "N") {
-  this._spentTriggers.add(key);
-
- 
-
-  if (ctx?.showTempMessage) {
-    msg(ctx.showTempMessage, "Sammle das Hack ein");
-  }
-  return;
-}
+        if (ctx?.showTempMessage) {
+          msg(ctx.showTempMessage, "You forgot the ground Beef!");
+        }
+      }
     },
 
     interactions: {
-      "F": (ctx) => msg(ctx.showTempMessage, "Förderband kaputt"),
 
       "M": (ctx) => {
-        if (phase === 1) return msg(ctx.showTempMessage, "Maschie ist wohl kaputt ...");
-        if (phase === 2) return msg(ctx.showTempMessage, "Irgendwas stimmt mit den Sicherungen nicht.");
-        if (phase === 3) return msg(ctx.showTempMessage, "Repariert und bereit");
-        if (phase === 4 || phase === 5) return msg(ctx.showTempMessage, "Repariert und bereit");
+        if (phase === 1) return msg(ctx.showTempMessage, "Machine seems broken...");
+        if (phase === 2) return msg(ctx.showTempMessage, "Something is wrong with the fuses...");
+        if (phase === 3) return msg(ctx.showTempMessage, "Repared and ready!");
+        if (phase === 4 || phase === 5) return msg(ctx.showTempMessage, "Repared and ready!");
         return;
       },
 
@@ -150,30 +142,30 @@ if (phase >= 6 && t === "N") {
         if (phase >= 6) return;
         if (phase === 5) {
           if (sysStep !== 0) {
-            msg(ctx.showTempMessage, "Error 404---Abbruch");
+            msg(ctx.showTempMessage, "Error 404---restart.");
             resetSysSequence();
             return;
           }
-          msg(ctx.showTempMessage, "Maschine aktiviert");
+          msg(ctx.showTempMessage, "Machine activated.");
           sysStep = 1;
           return;
         }
-        msg(ctx.showTempMessage, "Ein Computer");
+        msg(ctx.showTempMessage, "Computer.");
       },
 
       "B": (ctx) => {
         if (phase >= 6) return;
         if (phase === 5) {
           if (sysStep !== 1) {
-            msg(ctx.showTempMessage, "Error 404---Abbruch");
+            msg(ctx.showTempMessage, "Error 404---restart.");
             resetSysSequence();
             return;
           }
-          msg(ctx.showTempMessage, "Kuh integriert");
+          msg(ctx.showTempMessage, "Cow integrated.");
           sysStep = 2;
           return;
         }
-        msg(ctx.showTempMessage, "Ein Computer");
+        msg(ctx.showTempMessage, "Computer.");
       },
 
       "C": (ctx) => {
@@ -181,11 +173,11 @@ if (phase >= 6 && t === "N") {
 
         if (phase === 5) {
           if (sysStep !== 2) {
-            msg(ctx.showTempMessage, "Error 404---Abbruch");
+            msg(ctx.showTempMessage, "Error 404---restart.");
             resetSysSequence();
             return;
           }
-          msg(ctx.showTempMessage, "Förderband initialisiert");
+          msg(ctx.showTempMessage, "Sytem initialized.");
           sysStep = 3;
 
           // NEU: Schwarzblende + Phase6 + Kuh-Sprite swap
@@ -193,42 +185,14 @@ if (phase >= 6 && t === "N") {
           return;
         }
 
-        msg(ctx.showTempMessage, "Ein Computer");
+        msg(ctx.showTempMessage, "Computer.");
       },
 
       // Container (H) - NEU: ab Phase 6 "voll mit hack"
       "H": (ctx) => {
-  if (phase < 6) {
-    return msg(ctx.showTempMessage, "Container leer");
-  }
-
-  const L = ctx.level || window.LEVEL2;
-  L.flags = L.flags || {};
-
-  // Hack nur einmal einsammeln
-  if (!L.flags.hackCollected) {
-    L.flags.hackCollected = true;
-
-    // ✅ U erst JETZT freigeben
-    L.flags.uUnlocked = true;
-
-    // Popup über Player
-    if (typeof window.showItemPopup === "function") {
-      window.showItemPopup("assets/Hack.png");
-    }
-
-    // Liste2
-    if (typeof window.setListStep === "function") {
-      window.setListStep(2);
-    } else if (typeof setListStep === "function") {
-      setListStep(2);
-    }
-
-    return msg(ctx.showTempMessage, "Hack eingesammelt");
-  }
-
-  return msg(ctx.showTempMessage, "voll mit hack");
-},
+        if (phase >= 6) return msg(ctx.showTempMessage, "Loaded with lots of ground Beef!");
+        return msg(ctx.showTempMessage, "Container leer");
+      },
 
       "I": (ctx) => handleItemInteract(ctx, "I"),
       "2": (ctx) => handleItemInteract(ctx, "2"),
@@ -243,7 +207,7 @@ if (phase >= 6 && t === "N") {
 
       "8": (ctx) => {
         if (phase >= 6) return;
-        if (phase === 1) msg(ctx.showTempMessage, "ohne hack nicht weiter");
+        if (phase === 1) msg(ctx.showTempMessage, "You forgot the ground Beef!");
       }
     }
   };
@@ -270,9 +234,9 @@ if (phase >= 6 && t === "N") {
   }
 
   function tileToItem(tile) {
-    if (tile === "I") return "boots";
-    if (tile === "2") return "hay";
-    if (tile === "3") return "carrots";
+    if (tile === "I") return "Boots";
+    if (tile === "2") return "Hay";
+    if (tile === "3") return "Carrots";
     return null;
   }
 
@@ -346,33 +310,33 @@ if (phase >= 6 && t === "N") {
     if (phase >= 6) return;
 
     if (phase === 1) {
-      msg(ctx.showTempMessage, "Ein Sicherungskasten....");
+      msg(ctx.showTempMessage, "Fuse box...");
       return;
     }
 
     if (phase === 2) {
       const steps = [
-        { expected: "4", text: "Widerstand repariert" },
-        { expected: "5", text: "Leitungen überprüft" },
-        { expected: "6", text: "Sicherung repariert" }
+        { expected: "4", text: "Resistance repaired.", duration: 1000 },
+        { expected: "5", text: "Line checked.", duration: 1000 },
+        { expected: "6", text: "Fuse repaired.", duration: 1000 }
       ];
 
       const current = steps[fuseStep];
 
       if (tile !== current.expected) {
-        msg(ctx.showTempMessage, "Kurzschluss");
+        msg(ctx.showTempMessage, "Short circuit...");
         resetFuseSequence();
         return;
       }
 
-      msg(ctx.showTempMessage, current.text, 300);
+      msg(ctx.showTempMessage, current.text, current.duration ?? 2200);
 
       fuseStep++;
 
       if (fuseStep >= steps.length) {
         setTimeout(() => {
-          msg(ctx.showTempMessage, "Maschine leuchtet");
-        }, 600);
+          msg(ctx.showTempMessage, "Machine illuminates.");
+        }, 1200);
 
         phase = 3;
         resetFuseSequence();
@@ -386,21 +350,21 @@ if (phase >= 6 && t === "N") {
     if (phase >= 6) return;
 
     if (phase === 1 || phase === 2 || phase === 3) {
-      if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel?!");
-      if (tile === "2") return msg(ctx.showTempMessage, "Heu?!");
-      if (tile === "3") return msg(ctx.showTempMessage, "Karotten?!");
+      if (tile === "I") return msg(ctx.showTempMessage, "Boots?!");
+      if (tile === "2") return msg(ctx.showTempMessage, "Hay?!");
+      if (tile === "3") return msg(ctx.showTempMessage, "Carrots?!");
       return;
     }
 
     if (phase === 5) {
-      return msg(ctx.showTempMessage, "leer");
+      return msg(ctx.showTempMessage, "empty...");
     }
 
     if (phase === 4) {
       const candidate = tileToItem(tile);
 
       if (itemHeld) {
-        msg(ctx.showTempMessage, "Tasche voll");
+        msg(ctx.showTempMessage, "Backpack is full...");
         resetPendingPickup();
         return;
       }
@@ -408,9 +372,9 @@ if (phase >= 6 && t === "N") {
       if (!itemHeld) {
         if (pendingPickup !== tile) {
           pendingPickup = tile;
-          if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel ?!...mitnehmen?");
-          if (tile === "2") return msg(ctx.showTempMessage, "Heu?!...mitnehmen");
-          if (tile === "3") return msg(ctx.showTempMessage, "KArotten?!...mitnehmen");
+          if (tile === "I") return msg(ctx.showTempMessage, "Boots, press 'Space' to collect.");
+          if (tile === "2") return msg(ctx.showTempMessage, "Hay, press 'Space' to collect.");
+          if (tile === "3") return msg(ctx.showTempMessage, "Carrots, press 'Space' to collect.");
           return;
         } else {
           itemHeld = candidate;
@@ -423,9 +387,9 @@ if (phase >= 6 && t === "N") {
             if (tile === "3") window.showItemPopup("assets/Karotten.png");
           }
 
-          if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel genommen");
-          if (tile === "2") return msg(ctx.showTempMessage, "Heu genommen");
-          if (tile === "3") return msg(ctx.showTempMessage, "Karotten genommen");
+          if (tile === "I") return msg(ctx.showTempMessage, "Boots collected.");
+          if (tile === "2") return msg(ctx.showTempMessage, "Hay collected.");
+          if (tile === "3") return msg(ctx.showTempMessage, "Carrots collected.");
           return;
         }
       }
@@ -436,7 +400,7 @@ if (phase >= 6 && t === "N") {
     if (phase >= 6) return;
 
     if (phase === 1) {
-      msg(ctx.showTempMessage, "Muh...Bin bereit, aber maschine kaputt");
+      msg(ctx.showTempMessage, "Muh...I'm ready, but the machine seems broken.");
       phase = 2;
       resetFuseSequence();
       resetPendingPickup();
@@ -444,12 +408,12 @@ if (phase >= 6 && t === "N") {
     }
 
     if (phase === 2) {
-      msg(ctx.showTempMessage, "Maschine muss repariert werden");
+      msg(ctx.showTempMessage, "Machine must be repaired");
       return;
     }
 
     if (phase === 3) {
-      msg(ctx.showTempMessage, "Muh.. bin hungrig vom warten");
+      msg(ctx.showTempMessage, "Muh.. I'm hungry...");
       phase = 4;
       itemHeld = null;
       resetPendingPickup();
@@ -458,26 +422,26 @@ if (phase >= 6 && t === "N") {
 
     if (phase === 4) {
       if (!itemHeld) {
-        msg(ctx.showTempMessage, "Muh.. bin hungrig vom warten");
+        msg(ctx.showTempMessage, "Muh.. I'm hungry...");
         return;
       }
 
       if (itemHeld === "boots") {
-        msg(ctx.showTempMessage, "Was soll ich damit ");
+        msg(ctx.showTempMessage, "What's that for???");
         itemHeld = null;
         resetPendingPickup();
         return;
       }
 
       if (itemHeld === "carrots") {
-        msg(ctx.showTempMessage, "Ne mag ich nicht");
+        msg(ctx.showTempMessage, "Nah... I don't like that...");
         itemHeld = null;
         resetPendingPickup();
         return;
       }
 
       if (itemHeld === "hay") {
-        msg(ctx.showTempMessage, "Das sieht lecker aus ....... Nun ist alles bereit, aktiviere das System");
+        msg(ctx.showTempMessage, "Mhhhh... that's nice! Now I'm ready... activate the System!");
         phase = 5;
         itemHeld = null;
         resetPendingPickup();
@@ -487,7 +451,7 @@ if (phase >= 6 && t === "N") {
     }
 
     if (phase === 5) {
-      msg(ctx.showTempMessage, "Computer starten das System");
+      msg(ctx.showTempMessage, "Computer starting the System.");
       return;
     }
   }
