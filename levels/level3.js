@@ -79,7 +79,7 @@
       this.renderPuzzle(ctx);
 
       ctx.showTempMessage(
-        "Schiebe mit LEERTASTE die Kisten auf die passenden felder.\nSei Vorsichtig! Manchmal gibt es kein zurück mehr! \n\nSolltest du nicht weiter wissen, drücke 'R'",
+        "Use the SPACEBAR to move the boxes to the correct spaces.\nBe careful! Sometimes there's no going back!\n\nIf you get stuck, press 'R'",
         7000,
         { typewriter: true, x: "50%", y: "50%", center: true }
       );
@@ -192,7 +192,7 @@ for (let ty = 0; ty < this.rows; ty++) {
     this.renderPuzzle(ctx);
 
     ctx.showTempMessage(
-      "Level gelöst! \n\nSchnell, sieh in die Kiste!",
+      "Every Box is in the right Place!\n\nQuick, check the Chest!",
       2200,
       { typewriter: true, x: "50%", y: "50%", center: true }
     );
@@ -240,7 +240,7 @@ for (const p of around) {
 if (chestFound) {
   setListStep(3); // Liste3.png
   ctx.showTempMessage(
-    "Du öffnest die Truhe...\nSie ist leer.\nOder etwa doch nicht?\n\nSiehe da, du hast die 🫘 gefunden!",
+    "You open the Chest...\nIt seems empty...\nNo wait...\n\nLook! You've found the 🫘!",
     3000,
     { typewriter: true, x: "50%", y: "50%", center: true }
   );
@@ -275,7 +275,7 @@ const candidates = [ front, leftSide, rightSide ];
       if (!block) {
         // Optional: Feedback an der Tuer
         const front = this.getTile(tx + dx, ty + dy);
-        if (front === "X" && !this.flags.solved) ctx.showTempMessage("Weg versperrt! Löse das Level.", 900, {typewriter: true, y: "50%" , x: "50" });
+        if (front === "X" && !this.flags.solved) ctx.showTempMessage("It seems blocked. Finish the Level.", 900, {typewriter: true, y: "50%" , x: "50" });
         return;
       }
 
@@ -285,7 +285,7 @@ const candidates = [ front, leftSide, rightSide ];
       // Destination muss frei sein
       const dest = this.getTile(nx, ny);
       if (dest !== "0" || this.isSolid(nx, ny)) {
-        ctx.showTempMessage("Kiste BLOCKIERT!", 900, {typewriter: true, y: "%" });
+        ctx.showTempMessage("Box is blocked!", 900, {typewriter: true, y: "%" });
         return;
       }
 
@@ -322,8 +322,8 @@ walls: [
   "100000000000000000000000000011000000001000001",
   "10000b000000011000000000000011000000000000001",
   "100000000000011000000000000011000000000000001",
-  "111110001111111111000111111111110001111100011",
-  "111110001111111111000111111110000001111100011",
+  "111110011111111111000111111111110001111100011",
+  "111110011111111111000111111110000001111100011",
   "100000000000010000000100000010000000000000001",
   "10000000000001000000010000g0100000000R0000001",
   "100000000000010000000000000000000000000000001",
