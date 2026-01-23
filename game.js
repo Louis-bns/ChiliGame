@@ -277,7 +277,9 @@ function spawnChestAtTile(tx, ty, { z = 20, scale = 2, className = "" } = {}) {
   // wir setzen hier per transform direkt (überschreibt CSS)
   el.style.transform = `translate(-6px, -6px) scale(${scale})`;
 
-  game.appendChild(el);
+  // hinter Player: vor dem Player in den DOM einfügen (und zIndex kleiner als player)
+game.insertBefore(el, player);
+
   return el;
 }
 
@@ -313,7 +315,7 @@ function spawnGunChestsFromP(level) {
     const row = level.walls[ty];
     for (let tx = 0; tx < level.cols; tx++) {
       if (row[tx] === "P") {
-        const el = spawnChestAtTile(tx, ty, { className: "gun-chest", z: 21, scale: 2 });
+        const el = spawnChestAtTile(tx, ty, { className: "gun-chest", z: 6, scale: 2.6 });
         gunChests.set(keyXY(tx, ty), { el, tx, ty });
       }
     }
@@ -685,6 +687,9 @@ function getPlayerTilePos(biasPx = 0) {
   return { tx: Math.floor(cx / TILE), ty: Math.floor(cy / TILE) };
 }
 
+function isNearTile(playerTx, playerTy, targetTx, targetTy, range = 1) {
+  return Math.abs(playerTx - targetTx) <= range && Math.abs(playerTy - targetTy) <= range;
+}
 
 
 function handleInteract() {
@@ -692,7 +697,8 @@ function handleInteract() {
   const { tx, ty } = getPlayerTilePos();
 
   // 0) Boss-Truhe öffnen (falls vorhanden)
- if (bossChest && bossChest.tx === tx && bossChest.ty === ty) {
+ if (bossChest && isNearTile(tx, ty, bossChest.tx, bossChest.ty, 1)) {
+
   showTempMessage("Du öffnest die Truhe...\nDu hast die 🌶️ Chilischote gefunden!", 2600, {
     typewriter: true, charDelay: 18, x: "50%", y: "50%", center: true
   });
@@ -710,11 +716,20 @@ setListStep(5); // 🌶️ Chili = Liste5.png
 
 
   // 0b) P-Truhe (Gun) öffnen
-  const pTile = getTileAt(currentLevel, tx, ty);
-  if (pTile === "P" && !HAS_GUN) {
-    pickupGunFromChest(currentLevel, tx, ty);
-    return;
+  // P-Truhe in Reichweite finden (max 1 Tile Entfernung)
+if (!HAS_GUN) {
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const ntx = tx + dx;
+      const nty = ty + dy;
+      if (getTileAt(currentLevel, ntx, nty) === "P") {
+        pickupGunFromChest(currentLevel, ntx, nty);
+        return;
+      }
+    }
   }
+}
+
 
   const tile = getTileAt(currentLevel, tx, ty);
 
@@ -1137,7 +1152,7 @@ function spawnChestAtBoss() {
   // falls schon eine Boss-Truhe existiert, erst entfernen
   if (bossChest?.el) bossChest.el.remove();
 
-  const el = spawnChestAtTile(tx, ty, { className: "boss-chest", z: 22, scale: 2 });
+  const el = spawnChestAtTile(tx, ty, { className: "boss-chest", z: 6, scale: 3 });
   bossChest = { el, tx, ty };
 }
 
