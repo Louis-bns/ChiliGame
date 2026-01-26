@@ -1,4 +1,8 @@
-console.log("GAME.JS LOADED", Date.now());
+// =========================
+// GAME.JS (MERGE-FIXED)
+// - entfernt die doppelte zweite Kopie (die den "Identifier ... already been declared" SyntaxError auslöst)
+// - behält alle gemergten Elemente aus deinem Post (Boss, Gun, Bullets, Truhen, Cows, Speechbubble, Triggers, Levelwechsel)
+// =========================
 
 const game = document.getElementById("game");
 const player = document.getElementById("player");
@@ -19,12 +23,14 @@ let gameStarted = false;
 let currentLevel = null;
 let wallGrid = null; // 2D boolean [row][col]
 let TILE = 32;
+
 let HAS_GUN = false;
 const bullets = []; // { el, x, y, vx, vy, born }
 const BULLET_SPEED = 900;      // px/s
 const BULLET_LIFETIME = 1200;  // ms
 const SHOOT_COOLDOWN = 140;    // ms
 let _lastShotAt = 0;
+
 // Truhen
 const gunChests = new Map(); // key "tx,ty" -> { el, tx, ty }
 let bossChest = null;        // { el, tx, ty }
@@ -34,7 +40,7 @@ let bossChest = null;        // { el, tx, ty }
    ========================= */
 let boss = null; // { el, x,y, vx,vy, dirX, dirY, speed, baseSpeed, scale, nextTurnAt, nextShotAt }
 const bossFireballs = []; // { el, x,y, vx,vy, born }
-const BOSS_FIREBALL_SPEED = 520;   // px/s
+const BOSS_FIREBALL_SPEED = 520;     // px/s
 const BOSS_FIREBALL_LIFETIME = 2400; // ms
 const BOSS_HIT_BASE = { w: 54, h: 54, ox: 5, oy: 5 }; // Boss 64x64 -> fairer Hit
 
@@ -50,7 +56,6 @@ const PLAYER_HIT = { w: 40, h: 60 };
 const DEFAULT_SCALES = { wolf: 4, bat: 1 };
 
 // Enemy Hitboxen (fair; ggf. anpassen)
-// Hitboxen in "Sprite-Pixeln" (unskaliert), werden in getEnemyHitRect mit scale multipliziert
 const BAT_HIT_BASE = { w: 70, h: 70, ox: 13, oy: 28 }; // Bat: Element 96x128
 const WOLF_HIT_BASE = { w: 56, h: 56, ox: 4, oy: 4 };  // Wolf: Element 64x64
 
@@ -62,11 +67,13 @@ let SAFE_UNTIL = 0;
    ========================= */
 let px = 0, py = 0;
 let facing = "down"; // "left" | "right" | "up" | "down"
-let facingX = "right";   // merkt letzte horizontale Richtung
+let facingX = "right"; // merkt letzte horizontale Richtung
 const keys = { left: false, right: false, up: false, down: false };
+
 const enemies = []; // {type, el, x,y, homeX,homeY, t, cfg, dir, startX, maxX}
 const cows = [];    // NEU: reine Deko (ohne Hitbox)
-let PLAYER_LOCKED = false; // für bearbeitung spiel modus wechseln ( Locked bei Text)
+
+let PLAYER_LOCKED = false; // Locked bei Text
 
 /* =========================
    SPEECH BUBBLE (HUD)
@@ -144,7 +151,7 @@ function showTempMessage(text, ms = 2000, opts = {}) {
     x = "50%",
     y = "50%",
     center = true,
-    lockPlayer = false   // 👈 NEU
+    lockPlayer = false
   } = opts;
 
   if (showTempMessage._locked) {
@@ -152,9 +159,7 @@ function showTempMessage(text, ms = 2000, opts = {}) {
     showTempMessage._locked = false;
   }
 
-  if (lockPlayer) {
-    PLAYER_LOCKED = true;
-  }
+  if (lockPlayer) PLAYER_LOCKED = true;
 
   wrap.style.position = "absolute";
   wrap.style.left = typeof x === "number" ? `${x}px` : x;
@@ -184,7 +189,6 @@ function showTempMessage(text, ms = 2000, opts = {}) {
 
   showTempMessage._typeTimer = setInterval(() => {
     el.textContent += text[i++] ?? "";
-
     if (i >= text.length) {
       clearInterval(showTempMessage._typeTimer);
       showTempMessage._typeTimer = null;
@@ -194,12 +198,9 @@ function showTempMessage(text, ms = 2000, opts = {}) {
 }
 
 /* =========================
-   UTILS
+   INGREDIENT LIST (PNG SWAP)
    ========================= */
-// =========================
-// INGREDIENT LIST (PNG SWAP)
-// =========================
-let LIST_STEP = 1;           // 1 = Liste1.png (leer)
+let LIST_STEP = 1;
 const LIST_MIN = 1;
 const LIST_MAX = 20;
 
@@ -211,15 +212,13 @@ function showIngredientsList() {
 
 function setListStep(step) {
   LIST_STEP = Math.max(LIST_MIN, Math.min(LIST_MAX, step));
-
-  showIngredientsList(); // blendet die Box ein
+  showIngredientsList();
 
   const img =
     document.getElementById("listImg") ||
     document.querySelector("#side-image img");
 
   if (!img) return;
-
   img.src = `assets/Liste${LIST_STEP}.png`;
 }
 
@@ -229,16 +228,14 @@ function advanceListStep() {
 
 function unequipGun() {
   HAS_GUN = false;
-  player.classList.remove("gun"); // Sprite zurück auf Koch.png (Default CSS)
+  player.classList.remove("gun");
   _lastShotAt = 0;
 
-  // optional: alle noch fliegenden Corn-Bullets entfernen
   for (let i = bullets.length - 1; i >= 0; i--) {
     bullets[i].el?.remove();
     bullets.splice(i, 1);
   }
 }
-
 
 function restartGame() {
   if (restartGame._done) return;
@@ -251,19 +248,13 @@ function rectsOverlap(a, b) {
 }
 
 function getBossRect() {
-  const boss = document.getElementById("boss");
-  if (!boss) return null;
+  const bossEl = document.getElementById("boss");
+  if (!bossEl) return null;
 
-  // Boss-Position relativ zum #game Container
-  const b = boss.getBoundingClientRect();
+  const b = bossEl.getBoundingClientRect();
   const g = game.getBoundingClientRect();
 
-  return {
-    x: b.left - g.left,
-    y: b.top - g.top,
-    w: b.width,
-    h: b.height
-  };
+  return { x: b.left - g.left, y: b.top - g.top, w: b.width, h: b.height };
 }
 
 function keyXY(tx, ty) { return `${tx},${ty}`; }
@@ -274,14 +265,10 @@ function spawnChestAtTile(tx, ty, { z = 20, scale = 2, className = "" } = {}) {
   el.style.left = (tx * TILE) + "px";
   el.style.top  = (ty * TILE) + "px";
   el.style.zIndex = String(z);
-
-  // tile-chest hat schon scale(2) in CSS – wenn du variabel willst:
-  // wir setzen hier per transform direkt (überschreibt CSS)
   el.style.transform = `translate(-6px, -6px) scale(${scale})`;
 
-  // hinter Player: vor dem Player in den DOM einfügen (und zIndex kleiner als player)
-game.insertBefore(el, player);
-
+  // hinter Player
+  game.insertBefore(el, player);
   return el;
 }
 
@@ -294,23 +281,20 @@ function setTileChar(level, tx, ty, ch) {
 function unlockBossExit(level) {
   if (!level) return;
 
-  // Flag (falls du es im Level brauchst)
   level.flags = level.flags || {};
   level.flags.bossLooted = true;
 
-  // Unsichtbare Wände entfernen: wir nutzen Tile "V" als Invisible Block
-  // (siehe Patch in LEVEL4 weiter unten)
   if (Array.isArray(level.walls)) {
     level.walls = level.walls.map(r => r.replaceAll("V", "0"));
   }
 
-  showTempMessage("Ein Mechanismus klickt... Der Weg ist frei!", 1600, { typewriter: true, charDelay: 18 });
+  showTempMessage("Ein Mechanismus klickt... Der Weg ist frei!", 1600, {
+    typewriter: true, charDelay: 18
+  });
 }
-
 
 function spawnGunChestsFromP(level) {
   gunChests.clear();
-  // alte P-Truhen (falls Level reload)
   document.querySelectorAll(".gun-chest").forEach(el => el.remove());
 
   for (let ty = 0; ty < level.rows; ty++) {
@@ -327,20 +311,17 @@ function spawnGunChestsFromP(level) {
 function pickupGunFromChest(level, tx, ty) {
   if (HAS_GUN) return;
 
-  // 🔥 NEU: Level 4 Corn-Chest setzt explizit Liste4
+  // Level 4 Corn-Chest setzt explizit Liste4
   if (currentLevel?.id === "level4") {
-    setListStep(4); // Liste4.png
+    setListStep(4);
   }
 
   HAS_GUN = true;
   player.classList.add("gun");
-  showTempMessage(
-    "Maiskolben-Pistole aufgenommen!",
-    1500,
-    { typewriter: true, charDelay: 18 }
-  );
+  showTempMessage("Maiskolben-Pistole aufgenommen!", 1500, {
+    typewriter: true, charDelay: 18
+  });
 
-  // Truhe entfernen
   const k = keyXY(tx, ty);
   const chest = gunChests.get(k);
   if (chest?.el) chest.el.remove();
@@ -349,8 +330,6 @@ function pickupGunFromChest(level, tx, ty) {
   setTileChar(level, tx, ty, "0");
 }
 
-
-
 function shootCorn() {
   if (!HAS_GUN) return;
 
@@ -358,19 +337,16 @@ function shootCorn() {
   if (now - _lastShotAt < SHOOT_COOLDOWN) return;
   _lastShotAt = now;
 
-  // Startpunkt: Mitte der Player-Hitbox
   const p = getPlayerHitRect();
   let x = p.x + p.w / 2 - 5;
   let y = p.y + p.h / 2 - 5;
 
-  // Richtung aus facing
   let dx = 0, dy = 0;
   if (facing === "right") dx = 1;
   else if (facing === "left") dx = -1;
   else if (facing === "up") dy = -1;
   else dy = 1;
 
-  // minimaler Offset, damit Bullet nicht im Player steckt
   x += dx * 18;
   y += dy * 18;
 
@@ -378,15 +354,7 @@ function shootCorn() {
   el.className = "corn-bullet";
   game.appendChild(el);
 
-  const b = {
-    el,
-    x,
-    y,
-    vx: dx * BULLET_SPEED,
-    vy: dy * BULLET_SPEED,
-    born: now
-  };
-
+  const b = { el, x, y, vx: dx * BULLET_SPEED, vy: dy * BULLET_SPEED, born: now };
   bullets.push(b);
   el.style.transform = `translate(${b.x}px, ${b.y}px)`;
 }
@@ -399,62 +367,50 @@ function updateBullets(dt) {
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
 
-    // Lifetime
     if (performance.now() - b.born > BULLET_LIFETIME) {
       b.el.remove();
       bullets.splice(i, 1);
       continue;
     }
 
-    // Move
     b.x += b.vx * dt;
     b.y += b.vy * dt;
 
-    // Wall collision (10x10 Bullet)
     if (rectIntersectsWall(b.x, b.y, 10, 10)) {
       b.el.remove();
       bullets.splice(i, 1);
       continue;
     }
 
-   // Boss collision (wenn vorhanden)
-if (bossRect) {
-  const br = { x: b.x, y: b.y, w: 10, h: 10 };
-  if (rectsOverlap(br, bossRect)) {
+    if (bossRect) {
+      const br = { x: b.x, y: b.y, w: 10, h: 10 };
+      if (rectsOverlap(br, bossRect)) {
+        window.BOSS_HP = (typeof window.BOSS_HP === "number") ? window.BOSS_HP : 20;
+        window.BOSS_HP -= 1;
+        updateBossHpBar();
 
-    // HP default 20
-    window.BOSS_HP = (typeof window.BOSS_HP === "number") ? window.BOSS_HP : 20;
-    window.BOSS_HP -= 1;
-    updateBossHpBar();
+        showTempMessage(`Treffer! Boss HP: ${window.BOSS_HP}`, 700);
 
+        b.el.remove();
+        bullets.splice(i, 1);
 
-    showTempMessage(`Treffer! Boss HP: ${window.BOSS_HP}`, 700);
+        if (window.BOSS_HP <= 0) {
+          spawnChestAtBoss();
 
-    // Bullet weg
-    b.el.remove();
-    bullets.splice(i, 1);
+          const bossEl = document.getElementById("boss");
+          if (bossEl) bossEl.remove();
+          boss = null;
 
-    // Boss dead
-    if (window.BOSS_HP <= 0) {
-      // Kiste da spawnen wo er stirbt
-      spawnChestAtBoss();
-
-      const bossEl = document.getElementById("boss");
-      if (bossEl) bossEl.remove();
-      boss = null;
-      unequipGun();
-      showTempMessage("Boss besiegt!", 1500, { typewriter: true, charDelay: 18 });
+          unequipGun();
+          showTempMessage("Boss besiegt!", 1500, { typewriter: true, charDelay: 18 });
+        }
+        continue;
+      }
     }
-
-    continue;
-  }
-}
-
 
     b.el.style.transform = `translate(${b.x}px, ${b.y}px)`;
   }
 }
-
 
 function getPlayerHitRect() {
   const hitOX = (player.clientWidth - PLAYER_HIT.w) / 2;
@@ -466,12 +422,7 @@ function getEnemyHitRect(e) {
   const hb = (e.type === "wolf") ? WOLF_HIT_BASE : BAT_HIT_BASE;
   const s = e.cfg.scale;
 
-  return {
-    x: e.x + hb.ox * s,
-    y: e.y + hb.oy * s,
-    w: hb.w * s,
-    h: hb.h * s
-  };
+  return { x: e.x + hb.ox * s, y: e.y + hb.oy * s, w: hb.w * s, h: hb.h * s };
 }
 
 function setWalkClass(el, dir) {
@@ -482,75 +433,56 @@ function setWalkClass(el, dir) {
 function forceSolveCurrentLevel() {
   if (!currentLevel) return;
 
-  // Nur für Level 3 (optional absichern)
   if (currentLevel.id !== "level3") {
     console.warn("forceSolve: falsches Level");
     return;
   }
 
-  // Alle Targets direkt als gelöst markieren
   for (const t of currentLevel._targets || []) {
     currentLevel.setTile(t.tx, t.ty, "L");
   }
 
   currentLevel.flags.solved = true;
 
-  // Neu rendern (Tür, Blöcke, etc.)
   if (typeof currentLevel.renderPuzzle === "function") {
-    currentLevel.renderPuzzle({
-      gameEl: game,
-      showTempMessage
-    });
+    currentLevel.renderPuzzle({ gameEl: game, showTempMessage });
   }
 
-  // Offizielles Solve-Event auslösen
   if (typeof currentLevel.checkSolved === "function") {
-    currentLevel.checkSolved({
-      showTempMessage
-    });
+    currentLevel.checkSolved({ showTempMessage });
   }
 
   console.log("LEVEL FORCED SOLVED");
 }
 
 /* =========================
-   KEY POPUP (Schlüssel gefunden)
+   POPUPS
    ========================= */
 function showKeyPopup() {
   const keyImg = document.createElement("img");
-  keyImg.src = "assets/key.png"; 
+  keyImg.src = "assets/key.png";
   keyImg.className = "key-popup";
 
-  // Position relativ zum #game Container
   const playerRect = player.getBoundingClientRect();
   const gameRect = game.getBoundingClientRect();
 
-  keyImg.style.left =
-    (playerRect.left - gameRect.left) + (playerRect.width / 2) - 20 + "px";
-  keyImg.style.top =
-    (playerRect.top - gameRect.top) - 45 + "px";
+  keyImg.style.left = (playerRect.left - gameRect.left) + (playerRect.width / 2) - 20 + "px";
+  keyImg.style.top  = (playerRect.top  - gameRect.top)  - 45 + "px";
 
   game.appendChild(keyImg);
-
   setTimeout(() => keyImg.remove(), 1200);
 }
 
-/* =========================
-   Item POPUP 
-   ========================= */
 function showItemPopup(src, ms = 1200) {
   const img = document.createElement("img");
   img.src = src;
-  img.className = "key-popup"; // gleiche CSS/Animation wie Schlüssel damit man keine neue CSS braucht
+  img.className = "key-popup";
 
-  // Position relativ zum #game Container (gleich wie showKeyPopup)
   const playerRect = player.getBoundingClientRect();
   const gameRect = game.getBoundingClientRect();
 
-  img.style.left =
-    (playerRect.left - gameRect.left) + (playerRect.width / 2) - 20 + "px";
-  img.style.top =
-    (playerRect.top - gameRect.top) - 45 + "px";
+  img.style.left = (playerRect.left - gameRect.left) + (playerRect.width / 2) - 20 + "px";
+  img.style.top  = (playerRect.top  - gameRect.top)  - 45 + "px";
 
   game.appendChild(img);
   setTimeout(() => img.remove(), ms);
@@ -562,13 +494,11 @@ function showArrowsPopup(ms = 2200) {
   img.src = "assets/arrows.png";
   img.className = "arrow-popup";
 
-  // Position relativ zum #game Container
   const playerRect = player.getBoundingClientRect();
   const gameRect = game.getBoundingClientRect();
 
-  // mittig über dem Kopf (Werte ggf. feinjustieren)
   img.style.left = (playerRect.left - gameRect.left) + (playerRect.width / 2) - 40 + "px";
-  img.style.top  = (playerRect.top - gameRect.top) - 80 + "px";
+  img.style.top  = (playerRect.top  - gameRect.top)  - 80 + "px";
 
   game.appendChild(img);
   setTimeout(() => img.remove(), ms);
@@ -584,46 +514,44 @@ document.addEventListener("keydown", (e) => {
     gameStarted = true;
     startScreen.classList.add("startscreen-hide");
     loadLevel(window.LEVEL1);
-      // Arrow-Hint direkt nach Spawn (1 Frame warten, damit Position stimmt)
-     // 3 Sekunden warten, dann Pfeile anzeigen
+
     setTimeout(() => {
-    showArrowsPopup(2200);
-  }, 1200);
+      showArrowsPopup(2200);
+    }, 1200);
+
     update._lastTime = null;
     requestAnimationFrame(update);
-
     return;
   }
 
-    // R = Full Restart
+  // R = Full Restart
   if (k === "r") {
     e.preventDefault();
-    restartGame(); // macht window.location.reload()
+    restartGame();
     return;
   }
 
+  // SPACE = shoot (wenn Waffe), sonst Interact
+  if ((k === " " || e.code === "Space") && gameStarted) {
+    e.preventDefault();
+    if (HAS_GUN) shootCorn();
+    else handleInteract();
+    return;
+  }
 
-// SPACE = shoot (wenn Waffe), sonst Interact
-if ((k === " " || e.code === "Space") && gameStarted) {
-  e.preventDefault();
-  if (HAS_GUN) shootCorn();
-  else handleInteract();
-  return;
-}
-
-// OPTIONAL: Interact zusätzlich auf "E"
-if (k === "e" && gameStarted) {
-  e.preventDefault();
-  handleInteract();
-  return;
-}
+  // Interact auf "E"
+  if (k === "e" && gameStarted) {
+    e.preventDefault();
+    handleInteract();
+    return;
+  }
 
   // DEBUG: Shift + L = Level sofort lösen
-if (e.shiftKey && e.key.toLowerCase() === "l") {
-  e.preventDefault();
-  forceSolveCurrentLevel();
-  return;
-}
+  if (e.shiftKey && e.key.toLowerCase() === "l") {
+    e.preventDefault();
+    forceSolveCurrentLevel();
+    return;
+  }
 
   switch (k) {
     case "arrowright":
@@ -674,7 +602,6 @@ function getPlayerTilePos(biasPx = 0) {
   let cx = px + hitOX + PLAYER_HIT.w / 2;
   let cy = py + hitOY + PLAYER_HIT.h / 2;
 
-  // Bias in Blickrichtung (macht Interact/Pushing stabiler)
   if (biasPx) {
     let dx = 0, dy = 0;
     if (facing === "right") dx = 1;
@@ -693,52 +620,43 @@ function isNearTile(playerTx, playerTy, targetTx, targetTy, range = 1) {
   return Math.abs(playerTx - targetTx) <= range && Math.abs(playerTy - targetTy) <= range;
 }
 
-
 function handleInteract() {
   if (!currentLevel) return;
   const { tx, ty } = getPlayerTilePos();
 
-  // 0) Boss-Truhe öffnen (falls vorhanden)
- if (bossChest && isNearTile(tx, ty, bossChest.tx, bossChest.ty, 1)) {
+  // Boss-Truhe öffnen
+  if (bossChest && isNearTile(tx, ty, bossChest.tx, bossChest.ty, 1)) {
+    showTempMessage("Du öffnest die Truhe...\nDu hast die 🌶️ Chilischote gefunden!", 2600, {
+      typewriter: true, charDelay: 18, x: "50%", y: "50%", center: true
+    });
 
-  showTempMessage("Du öffnest die Truhe...\nDu hast die 🌶️ Chilischote gefunden!", 2600, {
-    typewriter: true, charDelay: 18, x: "50%", y: "50%", center: true
-  });
+    setListStep(5); // Chili
+    unlockBossExit(currentLevel);
 
-  // Liste weiter (z.B. nach Chili)
-setListStep(5); // 🌶️ Chili = Liste5.png
+    bossChest.el.remove();
+    bossChest = null;
+    return;
+  }
 
-  // Exit freischalten (unsichtbare Wand entfernen)
-  unlockBossExit(currentLevel);
-
-  bossChest.el.remove();
-  bossChest = null;
-  return;
-}
-
-
-  // 0b) P-Truhe (Gun) öffnen
-  // P-Truhe in Reichweite finden (max 1 Tile Entfernung)
-if (!HAS_GUN) {
-  for (let dy = -1; dy <= 1; dy++) {
-    for (let dx = -1; dx <= 1; dx++) {
-      const ntx = tx + dx;
-      const nty = ty + dy;
-      if (getTileAt(currentLevel, ntx, nty) === "P") {
-        pickupGunFromChest(currentLevel, ntx, nty);
-        return;
+  // P-Truhe (Gun) öffnen
+  if (!HAS_GUN) {
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const ntx = tx + dx;
+        const nty = ty + dy;
+        if (getTileAt(currentLevel, ntx, nty) === "P") {
+          pickupGunFromChest(currentLevel, ntx, nty);
+          return;
+        }
       }
     }
   }
-}
-
 
   const tile = getTileAt(currentLevel, tx, ty);
 
-  // 1) Wenn es eine direkte Interaktion für das Tile gibt (z.B. K, F, M, ...)
+  // direkte Interactions
   const map = currentLevel.interactions || {};
   const fn = map[tile];
-
   if (typeof fn === "function") {
     fn({
       level: currentLevel,
@@ -752,8 +670,7 @@ if (!HAS_GUN) {
     return;
   }
 
-  // 2) Wichtig: onInteract IMMER erlauben (auch wenn tile === "0"),
-  // weil Push-Puzzle "vor dem Spieler" arbeitet.
+  // onInteract immer erlauben
   if (typeof currentLevel.onInteract === "function") {
     currentLevel.onInteract({
       level: currentLevel,
@@ -766,10 +683,7 @@ if (!HAS_GUN) {
     });
     return;
   }
-
-  // 3) Falls weder interactions noch onInteract: dann kein Interact
 }
-
 
 /* =========================
    WALL COLLISION
@@ -802,33 +716,29 @@ function rectIntersectsWall(x, y, w, h) {
 function getEnemyCfg(level, type) {
   const cfg = level?.enemyConfig?.[type] || {};
   return {
-    // mode: "infinity" | "patrolX"
     mode: cfg.mode || (type === "wolf" ? "patrolX" : "infinity"),
-
     scale: typeof cfg.scale === "number" ? cfg.scale : DEFAULT_SCALES[type],
 
-    // infinity
     a: typeof cfg.a === "number" ? cfg.a : (type === "wolf" ? 180 : 140),
     b: typeof cfg.b === "number" ? cfg.b : (type === "wolf" ? 140 : 90),
     curveSpeed: typeof cfg.curveSpeed === "number"
       ? cfg.curveSpeed
       : (typeof cfg.speed === "number" ? cfg.speed : (type === "wolf" ? 0.015 : 0.02)),
 
-    // patrolX
-    distance: typeof cfg.distance === "number" ? cfg.distance : 8, // tiles
+    distance: typeof cfg.distance === "number" ? cfg.distance : 8,
     patrolSpeed: typeof cfg.patrolSpeed === "number"
       ? cfg.patrolSpeed
-      : (typeof cfg.speed === "number" ? cfg.speed : 1.2), // px/frame
+      : (typeof cfg.speed === "number" ? cfg.speed : 1.2),
   };
 }
 
 /* =========================
-   NEU: PER-LEVEL COW CONFIG
+   PER-LEVEL COW CONFIG
    ========================= */
 function getCowCfg(level) {
   const cfg = level?.cowConfig || {};
   return {
-    enabled: cfg.enabled !== false, // default true
+    enabled: cfg.enabled !== false,
     sprite: typeof cfg.sprite === "string" ? cfg.sprite : "assets/Cow.png",
     frameW: typeof cfg.frameW === "number" ? cfg.frameW : 64,
     frameH: typeof cfg.frameH === "number" ? cfg.frameH : 64,
@@ -841,16 +751,13 @@ function getCowCfg(level) {
 }
 
 /* =========================
-   ENEMIES (MULTI)
+   ENEMIES / COWS CLEAR
    ========================= */
 function clearEnemies() {
   for (const e of enemies) e.el.remove();
   enemies.length = 0;
 }
 
-/* =========================
-   NEU: COWS (DECO ONLY)
-   ========================= */
 function clearCows() {
   for (const c of cows) c.el.remove();
   cows.length = 0;
@@ -874,7 +781,7 @@ function getBossCfg(level) {
     tx: typeof cfg.tx === "number" ? cfg.tx : 22,
     ty: typeof cfg.ty === "number" ? cfg.ty : 22,
     scale: typeof cfg.scale === "number" ? cfg.scale : 3,
-    speed: typeof cfg.speed === "number" ? cfg.speed : 210, // px/s
+    speed: typeof cfg.speed === "number" ? cfg.speed : 210,
     turnMinMs: typeof cfg.turnMinMs === "number" ? cfg.turnMinMs : 600,
     turnMaxMs: typeof cfg.turnMaxMs === "number" ? cfg.turnMaxMs : 1600,
     shotMinMs: typeof cfg.shotMinMs === "number" ? cfg.shotMinMs : 900,
@@ -893,16 +800,13 @@ function spawnBossFromLevel(level) {
   el.style.display = "block";
   game.appendChild(el);
 
-  // initial HP
   window.BOSS_HP = 20;
 
-  // Position: tile-centered
   const x = cfg.tx * TILE + (TILE - 64 * cfg.scale) / 2;
   const y = cfg.ty * TILE + (TILE - 64 * cfg.scale) / 2;
 
   boss = {
-    el,
-    x, y,
+    el, x, y,
     vx: 0, vy: 0,
     dirX: 1, dirY: 0,
     scale: cfg.scale,
@@ -916,7 +820,7 @@ function spawnBossFromLevel(level) {
     shotMaxMs: cfg.shotMaxMs,
   };
 
-    // HP-Bar DOM
+  // HP-Bar DOM
   const hpWrap = document.createElement("div");
   hpWrap.className = "boss-hp-wrap";
 
@@ -929,7 +833,6 @@ function spawnBossFromLevel(level) {
   boss._hpFill = hpFill;
   boss._hpMax = 20;
   updateBossHpBar();
-
 
   setBossDir(1, 0);
   applyBossTransform();
@@ -944,12 +847,10 @@ function updateBossHpBar() {
   const pct = Math.max(0, Math.min(1, hp / max));
   boss._hpFill.style.width = (pct * 100) + "%";
 
-  // optional: Farbwechsel je nach HP
   if (pct > 0.5) boss._hpFill.style.background = "#2cff3a";
   else if (pct > 0.25) boss._hpFill.style.background = "#ffd400";
   else boss._hpFill.style.background = "#ff2a2a";
 }
-
 
 function applyBossTransform() {
   if (!boss) return;
@@ -962,19 +863,16 @@ function setBossDir(dx, dy) {
   boss.dirX = dx;
   boss.dirY = dy;
 
-  // Sprite-Reihe wählen: links/rechts
   boss.el.classList.remove("walk-left", "walk-right", "walk-up", "walk-down");
 
   if (dx < 0) boss.el.classList.add("walk-left");
   else if (dx > 0) boss.el.classList.add("walk-right");
   else {
-    // Wenn nur up/down: behalte last horizontale Richtung, default right
     if (boss.el.classList.contains("walk-left")) boss.el.classList.add("walk-left");
     else boss.el.classList.add("walk-right");
     boss.el.classList.add(dy < 0 ? "walk-up" : "walk-down");
   }
 
-  // Velocity (random walk)
   boss.vx = dx * boss.speed;
   boss.vy = dy * boss.speed;
 }
@@ -990,7 +888,6 @@ function bossHitRectAt(x, y) {
 }
 
 function chooseRandomBossDir() {
-  // 4 Richtungen (grid-like). Du kannst hier leicht auf 8 Richtungen erweitern.
   const dirs = [
     { dx: 1, dy: 0 },
     { dx: -1, dy: 0 },
@@ -1006,7 +903,6 @@ function chooseRandomBossDir() {
 function updateBoss(dt) {
   if (!boss) return;
 
-  // Speed-Phase: ab 10 HP verdoppeln
   const wantedSpeed = (window.BOSS_HP <= 10) ? (boss.baseSpeed * 2) : boss.baseSpeed;
   if (boss.speed !== wantedSpeed) {
     boss.speed = wantedSpeed;
@@ -1016,14 +912,12 @@ function updateBoss(dt) {
 
   const now = performance.now();
 
-  // Richtungswechsel random
   if (now >= boss.nextTurnAt) {
     const d = chooseRandomBossDir();
     setBossDir(d.dx, d.dy);
     boss.nextTurnAt = now + (boss.turnMinMs + Math.random() * (boss.turnMaxMs - boss.turnMinMs));
   }
 
-  // Move mit Wall-Collision (Boss-Hitbox)
   const tryMove = (nx, ny) => !rectIntersectsWall(
     bossHitRectAt(nx, ny).x,
     bossHitRectAt(nx, ny).y,
@@ -1034,26 +928,18 @@ function updateBoss(dt) {
   let nx = boss.x + boss.vx * dt;
   let ny = boss.y + boss.vy * dt;
 
-  // X
   if (boss.vx !== 0) {
     if (tryMove(nx, boss.y)) boss.x = nx;
-    else {
-      // Bounce: Richtung invertieren
-      setBossDir(-boss.dirX, 0);
-    }
+    else setBossDir(-boss.dirX, 0);
   }
 
-  // Y
   if (boss.vy !== 0) {
     if (tryMove(boss.x, ny)) boss.y = ny;
-    else {
-      setBossDir(0, -boss.dirY);
-    }
+    else setBossDir(0, -boss.dirY);
   }
 
   applyBossTransform();
 
-  // Player-Kollision => Tod
   const p = getPlayerHitRect();
   const br = bossHitRectAt(boss.x, boss.y);
   if (rectsOverlap(p, br)) {
@@ -1061,7 +947,6 @@ function updateBoss(dt) {
     return;
   }
 
-  // Schießen random
   if (now >= boss.nextShotAt) {
     bossShootRandomFireball();
     boss.nextShotAt = now + (boss.shotMinMs + Math.random() * (boss.shotMaxMs - boss.shotMinMs));
@@ -1071,12 +956,10 @@ function updateBoss(dt) {
 function bossShootRandomFireball() {
   if (!boss) return;
 
-  // Startpunkt: Boss-Mitte
   const s = boss.scale;
   const cx = boss.x + (64 * s) / 2 - 6;
   const cy = boss.y + (64 * s) / 2 - 6;
 
-  // Random Richtung (8 Wege)
   const dirs = [
     { dx: 1, dy: 0 }, { dx: -1, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: -1 },
     { dx: 1, dy: 1 }, { dx: 1, dy: -1 }, { dx: -1, dy: 1 }, { dx: -1, dy: -1 }
@@ -1092,8 +975,7 @@ function bossShootRandomFireball() {
 
   const fb = {
     el,
-    x: cx,
-    y: cy,
+    x: cx, y: cy,
     vx: dx * BOSS_FIREBALL_SPEED,
     vy: dy * BOSS_FIREBALL_SPEED,
     born: performance.now()
@@ -1120,14 +1002,12 @@ function updateBossFireballs(dt) {
     f.x += f.vx * dt;
     f.y += f.vy * dt;
 
-    // Wall collision (12x12)
     if (rectIntersectsWall(f.x, f.y, 12, 12)) {
       f.el.remove();
       bossFireballs.splice(i, 1);
       continue;
     }
 
-    // Player collision
     const fr = { x: f.x, y: f.y, w: 12, h: 12 };
     if (rectsOverlap(fr, p)) {
       restartGame();
@@ -1151,14 +1031,15 @@ function spawnChestAtBoss() {
   const tx = Math.max(0, Math.min(currentLevel.cols - 1, Math.floor(cx / TILE)));
   const ty = Math.max(0, Math.min(currentLevel.rows - 1, Math.floor(cy / TILE)));
 
-  // falls schon eine Boss-Truhe existiert, erst entfernen
   if (bossChest?.el) bossChest.el.remove();
 
   const el = spawnChestAtTile(tx, ty, { className: "boss-chest", z: 6, scale: 3 });
   bossChest = { el, tx, ty };
 }
 
-
+/* =========================
+   COW DECO
+   ========================= */
 function removeAllCowDecos() {
   document.querySelectorAll(".cow-deco").forEach(el => el.remove());
   cows.length = 0;
@@ -1168,14 +1049,11 @@ function spawnCow(tx, ty, cfg) {
   const el = cowTpl.cloneNode(false);
   el.id = "";
   el.style.display = "block";
-  el.classList.add("anim");
-  el.classList.add("cow-deco");
+  el.classList.add("anim", "cow-deco");
 
-  // Sprite + Frame (wie Bat/Granny: 96x128)
   const frameW = cfg.frameW ?? 96;
   const frameH = cfg.frameH ?? 128;
 
-  // Sheet im Spiel immer 4x2 Frames
   const sheetW = (cfg.sheetW ?? (frameW * 4));
   const sheetH = (cfg.sheetH ?? (frameH * 2));
 
@@ -1189,7 +1067,6 @@ function spawnCow(tx, ty, cfg) {
   if (cfg.behindPlayer) game.insertBefore(el, player);
   else game.appendChild(el);
 
-  // Position: mittig auf dem Tile (wie bei dir), dann scale
   const s = cfg.scale ?? 1;
   const x = tx * TILE + (TILE - frameW * s) / 2 + (cfg.ox ?? 0);
   const y = ty * TILE + (TILE - frameH * s) / 2 + (cfg.oy ?? 0);
@@ -1200,7 +1077,9 @@ function spawnCow(tx, ty, cfg) {
   cows.push({ el });
 }
 
-
+/* =========================
+   ENEMY SPAWN / UPDATE
+   ========================= */
 function findAllMarkers(level, marker) {
   const out = [];
   for (let y = 0; y < level.walls.length; y++) {
@@ -1217,7 +1096,7 @@ function applyEnemyTransform(e) {
   const isWolf = e.type === "wolf";
   const flip = (isWolf && e.dir === -1) ? -1 : 1;
 
-  const w = e.el.clientWidth; // unskaliert (z.B. Wolf 64)
+  const w = e.el.clientWidth;
   const xFix = (flip === -1) ? (w * s) : 0;
 
   e.el.style.transformOrigin = "top left";
@@ -1360,15 +1239,13 @@ function renderDebugWalls(level) {
    ========================= */
 function loadLevel(level) {
   const puzzleLayer = document.getElementById("puzzleLayer");
-if (puzzleLayer) puzzleLayer.remove();
+  if (puzzleLayer) puzzleLayer.remove();
 
-  // alte Layer löschen (falls vorhanden)
   const decor = document.getElementById("decor");
   if (decor) decor.innerHTML = "";
   const tiles = document.getElementById("tiles");
   if (tiles) tiles.innerHTML = "";
 
-  // Level klonen (Original nicht mutieren)
   currentLevel = {
     ...level,
     walls: level.walls.map(r => ("" + r)),
@@ -1379,11 +1256,9 @@ if (puzzleLayer) puzzleLayer.remove();
 
   TILE = level.tileSize;
 
-  // rows/cols ableiten (falls nicht gesetzt)
   level.rows = level.walls.length;
   level.cols = level.walls[0]?.length ?? 0;
 
-  // Background pro Level (optional)
   if (level.background) {
     const bg = encodeURI(level.background);
     game.style.backgroundImage = `url("${bg}")`;
@@ -1391,12 +1266,9 @@ if (puzzleLayer) puzzleLayer.remove();
     game.style.backgroundPosition = "center";
     game.style.backgroundRepeat = "no-repeat";
   }
-  // kein else: wenn background fehlt, CSS-Background beibehalten
 
-  // Spawn-Char pro Level (optional)
   const spawnChar = level.spawnChar || "2";
 
-  // Spawn suchen (Marker, sonst fallback)
   let spawn = null;
   for (let y = 0; y < level.walls.length; y++) {
     const x = level.walls[y].indexOf(spawnChar);
@@ -1404,82 +1276,66 @@ if (puzzleLayer) puzzleLayer.remove();
   }
   if (!spawn) spawn = level.spawn;
 
-  // Enemies aus Markern
   clearEnemies();
   clearCows();
   clearBoss();
 
-  
-
-
   const wolfSpawns = level.enemies?.wolf ? findAllMarkers(level, "W") : [];
   const batSpawns  = level.enemies?.bat  ? findAllMarkers(level, "F") : [];
 
-  // NEU: Kuh-Spawns über "K" (bleibt im Grid für Interactions!)
   const cowCfg = getCowCfg(level);
   const cowSpawns = (cowCfg.enabled && level?.cows?.cow) ? findAllMarkers(level, "K") : [];
 
-  // Marker entfernen (spawn + enemy marker -> "0")
-  // WICHTIG: "K" NICHT entfernen, sonst geht interactions["K"] nicht mehr
+  // WICHTIG: K nicht ersetzen, damit interactions["K"] weiterhin geht
   level.walls = level.walls.map(r =>
     r.replaceAll(spawnChar, "0").replaceAll("W", "0").replaceAll("F", "0")
   );
 
-  // wallGrid NACH cleanup bauen
   wallGrid = level.walls.map(rowStr => [...rowStr].map(c => c === "1"));
   spawnGunChestsFromP(level);
 
-
-  // Debug-Walls pro Level
   renderDebugWalls(level);
-
   renderTile8Sprites(level);
 
-  // Player setzen
   px = spawn.tx * TILE + (TILE - player.clientWidth) / 2;
   py = spawn.ty * TILE + (TILE - player.clientHeight) / 2;
   player.style.transform = `translate(${px}px, ${py}px)`;
-  // Boss nur wenn Level es aktiviert
-spawnBossFromLevel(currentLevel);
 
-  update._lastTime = null; // wichtig nach loadLevel
+  spawnBossFromLevel(currentLevel);
 
-  // Enemies spawnen
+  update._lastTime = null;
+
   for (const s of wolfSpawns) spawnEnemy("wolf", s.tx, s.ty);
   for (const s of batSpawns)  spawnEnemy("bat", s.tx, s.ty);
 
-  // NEU: Kühe spawnen (Deko, keine Hitbox)
   for (const s of cowSpawns)  spawnCow(s.tx, s.ty, cowCfg);
 
   SAFE_UNTIL = performance.now() + 1200;
 
-  // Trigger am Spawn
-const { tx: spawnTx, ty: spawnTy } = getPlayerTilePos();
+  const { tx: spawnTx, ty: spawnTy } = getPlayerTilePos();
 
-if (typeof currentLevel.checkTriggers === "function") {
-  currentLevel.checkTriggers(spawnTx, spawnTy, {
-    level: currentLevel,
-    showTempMessage,
-    playerEl: player,
-    gameEl: game,
-    facing
-  });
+  if (typeof currentLevel.checkTriggers === "function") {
+    currentLevel.checkTriggers(spawnTx, spawnTy, {
+      level: currentLevel,
+      showTempMessage,
+      playerEl: player,
+      gameEl: game,
+      facing
+    });
+  }
+
+  update._lastTx = spawnTx;
+  update._lastTy = spawnTy;
+
+  if (typeof currentLevel.onLoad === "function") {
+    currentLevel.onLoad({
+      level: currentLevel,
+      showTempMessage,
+      playerEl: player,
+      gameEl: game
+    });
+  }
 }
-
-update._lastTx = spawnTx;
-update._lastTy = spawnTy;
-
-if (typeof currentLevel.onLoad === "function") {
-  currentLevel.onLoad({
-    level: currentLevel,
-    showTempMessage,
-    playerEl: player,
-    gameEl: game
-  });
-}
-}
-
-
 
 /* =========================
    GAME LOOP
@@ -1487,20 +1343,16 @@ if (typeof currentLevel.onLoad === "function") {
 function update(now = performance.now()) {
   if (!gameStarted || !currentLevel) return;
 
-  // dt (Sekunden) berechnen
   if (update._lastTime == null) update._lastTime = now;
   let dt = (now - update._lastTime) / 1000;
   update._lastTime = now;
 
-  // dt begrenzen (Tab-Wechsel / Lags)
   if (dt > 0.05) dt = 0.05;
 
   if (currentLevel?.flags?.carrying) player.classList.add("carrying");
   else player.classList.remove("carrying");
 
-  // =========================
-  // MOVEMENT (nur wenn nicht gelocked)
-  // =========================
+  // MOVEMENT
   if (!PLAYER_LOCKED) {
     let vx = 0, vy = 0;
     if (keys.right) vx += SPEED * dt;
@@ -1508,7 +1360,6 @@ function update(now = performance.now()) {
     if (keys.down)  vy += SPEED * dt;
     if (keys.up)    vy -= SPEED * dt;
 
-    // diagonal normalisieren
     const len = Math.hypot(vx, vy);
     if (len > 0) {
       const max = SPEED * dt;
@@ -1530,65 +1381,44 @@ function update(now = performance.now()) {
       const ny = py + vy;
       if (canMoveTo(px, ny)) py = ny;
     }
-player.style.animation = "";
 
-// Facing + Animation + letzte horizontale Richtung
-if (vx > 0) {
-  facing = "right";
-  facingX = "right";
-  setWalkClass(player, "right");   // OBERE Reihe
-}
-else if (vx < 0) {
-  facing = "left";
-  facingX = "left";
-  setWalkClass(player, "left");    // UNTERE Reihe
-}
-else if (vy < 0) {
-  facing = "up";
+    player.style.animation = "";
 
-  // Erst UP setzen (Animation)
-  player.classList.remove("walk-up","walk-down");
-  player.classList.add("walk-up");
+    if (vx > 0) {
+      facing = "right"; facingX = "right";
+      setWalkClass(player, "right");
+    } else if (vx < 0) {
+      facing = "left"; facingX = "left";
+      setWalkClass(player, "left");
+    } else if (vy < 0) {
+      facing = "up";
+      player.classList.remove("walk-up","walk-down");
+      player.classList.add("walk-up");
+      player.classList.remove("walk-left","walk-right");
+      player.classList.add(facingX === "left" ? "walk-left" : "walk-right");
+    } else if (vy > 0) {
+      facing = "down";
+      player.classList.remove("walk-up","walk-down");
+      player.classList.add("walk-down");
+      player.classList.remove("walk-left","walk-right");
+      player.classList.add(facingX === "left" ? "walk-left" : "walk-right");
+    } else {
+      player.classList.remove("walk-up", "walk-down");
+      if (facingX === "left") {
+        player.classList.remove("walk-right");
+        player.classList.add("walk-left");
+      } else {
+        player.classList.remove("walk-left");
+        player.classList.add("walk-right");
+      }
+      player.style.animation = "none";
+      player.style.backgroundPositionX = "0px";
+    }
 
-  // Und horizontale Reihe beibehalten
-  player.classList.remove("walk-left","walk-right");
-  player.classList.add(facingX === "left" ? "walk-left" : "walk-right");
-}
-else if (vy > 0) {
-  facing = "down";
-
-  player.classList.remove("walk-up","walk-down");
-  player.classList.add("walk-down");
-
-  player.classList.remove("walk-left","walk-right");
-  player.classList.add(facingX === "left" ? "walk-left" : "walk-right");
-}
-
-else {
-  // Idle: keine Animation, aber letzte horizontale Reihe behalten
-  player.classList.remove("walk-up", "walk-down");
-
-  if (facingX === "left") {
-    player.classList.remove("walk-right");
-    player.classList.add("walk-left");   // setzt y=-128px (linke Reihe)
-  } else {
-    player.classList.remove("walk-left");
-    player.classList.add("walk-right");  // setzt y=0 (rechte Reihe)
+    player.style.transform = `translate(${px}px, ${py}px)`;
   }
 
-  // Animation stoppen + auf Frame 1
-  player.style.animation = "none";
-  player.style.backgroundPositionX = "0px";
-}
-
-
-player.style.transform = `translate(${px}px, ${py}px)`;
-
-  }
-
-  // =========================
-  // Tile / Trigger / Levelwechsel (IMMER prüfen)
-  // =========================
+  // Tile / Trigger / Levelwechsel
   const { tx: ptx, ty: pty } = getPlayerTilePos();
 
   if (update._lastTx !== ptx || update._lastTy !== pty) {
@@ -1596,12 +1426,12 @@ player.style.transform = `translate(${px}px, ${py}px)`;
     update._lastTy = pty;
     if (typeof currentLevel.checkTriggers === "function") {
       currentLevel.checkTriggers(ptx, pty, {
-  level: currentLevel,
-  showTempMessage,
-  playerEl: player,
-  gameEl: game,
-  facing
-});
+        level: currentLevel,
+        showTempMessage,
+        playerEl: player,
+        gameEl: game,
+        facing
+      });
     }
   }
 
@@ -1619,7 +1449,6 @@ player.style.transform = `translate(${px}px, ${py}px)`;
     return;
   }
 
-  // Level 3 -> Level 4 (du nutzt jetzt "Q")
   if (tileHere === "Q" && window.LEVEL4 && currentLevel.id === "level3") {
     loadLevel(window.LEVEL4);
     requestAnimationFrame(update);
@@ -1627,19 +1456,16 @@ player.style.transform = `translate(${px}px, ${py}px)`;
   }
 
   if (tileHere === "S" && window.LEVEL5 && currentLevel.id === "level4") {
-  loadLevel(window.LEVEL5);
-  requestAnimationFrame(update);
-  return;
-}
+    loadLevel(window.LEVEL5);
+    requestAnimationFrame(update);
+    return;
+  }
 
-  // =========================
-  // Enemies bewegen + Collision (IMMER laufen lassen)
-  // =========================
+  // Enemies + Boss + Bullets
   for (const e of enemies) updateEnemy(e);
 
   updateBoss(dt);
-updateBossFireballs(dt);
-
+  updateBossFireballs(dt);
   updateBullets(dt);
 
   if (performance.now() > SAFE_UNTIL) {
@@ -1652,6 +1478,7 @@ updateBossFireballs(dt);
     }
   }
 
-  // WICHTIG: Loop immer weiter laufen lassen
   requestAnimationFrame(update);
 }
+
+console.log("GAME.JS LOADED", Date.now());
