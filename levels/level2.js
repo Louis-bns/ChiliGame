@@ -4,58 +4,58 @@
     cols: 45,
     rows: 45,
     tileSize: 32,
-
+ 
     background: "assets/LEVEL2.png",
-
+ 
     spawnChar: "Z",
     spawn: { tx: 25, ty: 42 },
-
+ 
     enemyConfig: {
       wolf: { mode: "patrolX", distance: 10, speed: 1.4, scale: 4 },
       bat: { mode: "infinity", a: 8000, b: 5000, speed: 0.01, scale: 0.9 }
     },
-
+ 
     // NEU: Kuh-Konfig (Deko, ohne Hitbox), wird auf jedem "K" Tile gerendert
     cowConfig: {
       enabled: true,
       sprite: "assets/Cow.png",
       spritePatched: "assets/Cow_pflaster.png", // <-- NEU: Kuh mit Pflaster
-
+ 
       frameW: 96,
       frameH: 128,
-
+ 
       sheetW: 384,
       sheetH: 256,
-
+ 
       animDur: 0.8,
       scale: 1,
       ox: 0,
       oy: 0,
       behindPlayer: true
     },
-
+ 
     fullConfig: {
   enabled: true,
   sprite: "assets/voll.png",
-
+ 
   // Größenanpassung wie bei cowConfig
   scale: 1,     // z.B. 1.2 = größer
   ox: 1100,        // Pixel-Offset X
   oy: -10,        // Pixel-Offset Y
-
+ 
   behindPlayer: true, // true => hinter Player, false => davor
-
+ 
   wTiles: 8,
   hTiles: 6
 },
-
-
+ 
+ 
     cows: { cow: true },
-
+ 
     enemies: { bat: true, wolf: false },
-
+ 
     renderWalls: false,
-
+ 
     walls: [
       "000000000000000000000000000000000000000000000",
       "001111111111111111111111111111111111111111100",
@@ -103,131 +103,55 @@
       "100000000000000000000000000000000000000000001",
       "111111111111111111111111111111111111111111111"
     ],
-
+ 
     _spentTriggers: new Set(),
-
-    flags: {  uUnlocked: false,     // U bleibt solid bis N nach Phase6 triggert
+ 
+flags: {
+  uUnlocked: false,     // U bleibt solid bis N nach Phase6 triggert
   hackCollected: false  // damit Hack nur einmal eingesammelt wird
- },
+},
 
+ 
     getTile(tx, ty) {
       if (tx < 0 || ty < 0 || tx >= this.cols || ty >= this.rows) return "1";
       const row = this.walls[ty];
       if (!row) return "1";
       return row[tx] ?? "1";
     },
-
+ 
     isSolid(tx, ty) {
   const t = this.getTile(tx, ty);
   if (t === "1") return true;
-
+ 
   // U ist solid, bis wir es explizit freischalten (nach Fade + N Trigger)
   if (t === "U" && !this.flags?.uUnlocked) return true;
-
-function showTempMessage(text, ms = 2000, opts = {}) {
-  const el = ensureMessageBox();
-  const wrap = el._wrap;
-
-  const {
-    typewriter = false,
-    charDelay = 30,
-    x = "50%",
-    y = "50%",
-    center = true,
-    lockPlayer = false   // 👈 NEU
-  } = opts;
-
-  if (showTempMessage._locked) {
-    PLAYER_LOCKED = false;
-    showTempMessage._locked = false;
-  }
-
-  if (lockPlayer) {
-    PLAYER_LOCKED = true;
-  }
-
-  wrap.style.position = "absolute";
-  wrap.style.left = typeof x === "number" ? `${x}px` : x;
-  wrap.style.top = typeof y === "number" ? `${y}px` : y;
-  wrap.style.transform = center ? "translate(-50%, -50%)" : "none";
-  wrap.style.display = "block";
-
-  clearTimeout(showTempMessage._hideTimer);
-  if (showTempMessage._typeTimer) {
-    clearInterval(showTempMessage._typeTimer);
-    showTempMessage._typeTimer = null;
-  }
-
-  const unlock = () => {
-    if (lockPlayer) PLAYER_LOCKED = false;
-    wrap.style.display = "none";
-  };
-
-  if (!typewriter) {
-    el.textContent = text;
-    showTempMessage._hideTimer = setTimeout(unlock, ms);
-    return;
-  }
-
-  el.textContent = "";
-  let i = 0;
-
-  showTempMessage._typeTimer = setInterval(() => {
-    el.textContent += text[i++] ?? "";
-
-    if (i >= text.length) {
-      clearInterval(showTempMessage._typeTimer);
-      showTempMessage._typeTimer = null;
-      showTempMessage._hideTimer = setTimeout(unlock, ms);
-    }
-  }, Math.max(0, charDelay));
+ 
+  return false;
+},
+ 
+    checkTriggers(playerTx, playerTy, ctx) {
+      const t = this.getTile(playerTx, playerTy);
+      const key = `${t}:${playerTx},${playerTy}`;
+      if (this._spentTriggers.has(key)) return;
+ 
+      if ([1, 2, 3, 4, 5].includes(phase) && t === "N") {
+  this._spentTriggers.add(key);
+  if (ctx?.showTempMessage) msg(ctx.showTempMessage, "ohne hack nicht weiter");
+  return;
 }
-
-/* =========================
-   UTILS
-   ========================= */
-// =========================
-// INGREDIENT LIST (PNG SWAP)
-// =========================
-let LIST_STEP = 1;           // 1 = Liste1.png (leer)
-const LIST_MIN = 1;
-const LIST_MAX = 20;
-
-function showIngredientsList() {
-  const el = document.getElementById("side-image");
-  if (!el) return;
-  el.classList.remove("hidden");
-}
-
-function setListStep(step) {
-  LIST_STEP = Math.max(LIST_MIN, Math.min(LIST_MAX, step));
-
-  showIngredientsList(); // blendet die Box ein
-
-  const img =
-    document.getElementById("listImg") ||
-    document.querySelector("#side-image img");
-
-  if (!img) return;
-
-  img.src = `assets/Liste${LIST_STEP}.png`;
-}
-
-function advanceListStep() {
-  setListStep(LIST_STEP + 1);
-}
-
-function unequipGun() {
-  HAS_GUN = false;
-  player.classList.remove("gun"); // Sprite zurück auf Koch.png (Default CSS)
-  _lastShotAt = 0;
-
-  // optional: alle noch fliegenden Corn-Bullets entfernen
-  for (let i = bullets.length - 1; i >= 0; i--) {
-    bullets[i].el?.remove();
-    bullets.splice(i, 1);
+ 
+// N nach der Schwarzblende: neue Message + U freischalten
+if (phase >= 6 && t === "N") {
+  this._spentTriggers.add(key);
+ 
+ 
+ 
+  if (ctx?.showTempMessage) {
+    msg(ctx.showTempMessage, "Sammle das Hack ein");
   }
+  return;
 }
+<<<<<<< HEAD
 
 // N nach der Schwarzblende: neue Message + U freischalten
 if (phase >= 6 && t === "N") {
@@ -245,6 +169,13 @@ if (phase >= 6 && t === "N") {
     interactions: {
       "F": (ctx) => msg(ctx.showTempMessage, "damaged"),
 
+=======
+    },
+ 
+    interactions: {
+      "F": (ctx) => msg(ctx.showTempMessage, "Förderband kaputt"),
+ 
+>>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
       "M": (ctx) => {
         if (phase === 1) return msg(ctx.showTempMessage, "The machine appears to be demaged ...");
         if (phase === 2) return msg(ctx.showTempMessage, "Something is wrong with the fuse boxes.");
@@ -252,7 +183,7 @@ if (phase >= 6 && t === "N") {
         if (phase === 4 || phase === 5) return msg(ctx.showTempMessage, "Repaired and ready");
         return;
       },
-
+ 
       "A": (ctx) => {
         if (phase >= 6) return;
         if (phase === 5) {
@@ -267,7 +198,7 @@ if (phase >= 6 && t === "N") {
         }
         msg(ctx.showTempMessage, "A Computer");
       },
-
+ 
       "B": (ctx) => {
         if (phase >= 6) return;
         if (phase === 5) {
@@ -282,10 +213,10 @@ if (phase >= 6 && t === "N") {
         }
         msg(ctx.showTempMessage, "A Computer");
       },
-
+ 
       "C": (ctx) => {
         if (phase >= 6) return;
-
+ 
         if (phase === 5) {
           if (sysStep !== 2) {
             msg(ctx.showTempMessage, "Error 404---Interruption");
@@ -294,42 +225,52 @@ if (phase >= 6 && t === "N") {
           }
           msg(ctx.showTempMessage, "Container initialized");
           sysStep = 3;
-
+ 
           // NEU: Schwarzblende + Phase6 + Kuh-Sprite swap
           triggerPhase6Transition(ctx);
           return;
         }
+<<<<<<< HEAD
 
         msg(ctx.showTempMessage, "A Computer");
+=======
+ 
+        msg(ctx.showTempMessage, "Ein Computer");
+>>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
       },
-
+ 
       // Container (H) - NEU: ab Phase 6 "voll mit hack"
       "H": (ctx) => {
   if (phase < 6) {
     return msg(ctx.showTempMessage, "Container empty");
   }
-
+ 
   const L = ctx.level || window.LEVEL2;
   L.flags = L.flags || {};
-
+ 
   // Hack nur einmal einsammeln
   if (!L.flags.hackCollected) {
     L.flags.hackCollected = true;
-
+ 
     // ✅ U erst JETZT freigeben
     L.flags.uUnlocked = true;
-
+ 
     // Popup über Player
     if (typeof window.showItemPopup === "function") {
       window.showItemPopup("assets/Hack.png");
     }
+<<<<<<< HEAD
 
+=======
+ 
+>>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
     // Liste2
     if (typeof window.setListStep === "function") {
       window.setListStep(2);
     } else if (typeof setListStep === "function") {
       setListStep(2);
     }
+<<<<<<< HEAD
 
     return msg(ctx.showTempMessage, "Ground beef collected");
   }
@@ -355,33 +296,60 @@ if (phase >= 6 && t === "N") {
     }
   };
 
+=======
+ 
+    return msg(ctx.showTempMessage, "Hack eingesammelt");
+  }
+ 
+  return msg(ctx.showTempMessage, "voll mit hack");
+},
+ 
+      "I": (ctx) => handleItemInteract(ctx, "I"),
+      "2": (ctx) => handleItemInteract(ctx, "2"),
+      "3": (ctx) => handleItemInteract(ctx, "3"),
+ 
+      "4": (ctx) => handleFuseInteract(ctx, "4"),
+      "5": (ctx) => handleFuseInteract(ctx, "5"),
+      "6": (ctx) => handleFuseInteract(ctx, "6"),
+ 
+      "k": (ctx) => handleCowInteract(ctx),
+      "K": (ctx) => handleCowInteract(ctx),
+ 
+      "8": (ctx) => {
+        if (phase >= 6) return;
+        if (phase === 1) msg(ctx.showTempMessage, "ohne hack nicht weiter");
+      }
+    }
+  };
+ 
+>>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
   /* =========================================================
      PHASEN-LOGIK
      ========================================================= */
   let phase = 1;
-
+ 
   let fuseStep = 0;
   let itemHeld = null;
   let pendingPickup = null;
   let sysStep = 0;
-
+ 
   function msg(showTempMessage, text, duration, extra = {}) {
   // 🔒 erlaubt auch: msg(fn, "Text", { lockPlayer: true })
   if (duration && typeof duration === "object") {
     extra = duration;
     duration = undefined;
   }
-
+ 
   const charDelay = extra.charDelay ?? 40;     // einheitlich
   const base = extra.baseTime ?? 900;          // Mindestanzeigezeit
   const minTime = text.length * charDelay + base;
-
+ 
   // wenn duration nicht gesetzt oder zu klein: minTime nehmen
   const finalDuration =
     (typeof duration === "number" && duration > 0)
       ? Math.max(duration, minTime)
       : minTime;
-
+ 
   showTempMessage(text, finalDuration, {
     x: "50%",
     y: "50%",
@@ -391,224 +359,89 @@ if (phase >= 6 && t === "N") {
     ...extra
   });
 }
-
+ 
   function tileToItem(tile) {
     if (tile === "I") return "boots";
     if (tile === "2") return "hay";
     if (tile === "3") return "carrots";
     return null;
   }
-
-  console.log("LEVEL FORCED SOLVED");
-}
-
-/* =========================
-   KEY POPUP (Schlüssel gefunden)
-   ========================= */
-function showKeyPopup() {
-  const keyImg = document.createElement("img");
-  keyImg.src = "assets/key.png"; 
-  keyImg.className = "key-popup";
-
-  // Position relativ zum #game Container
-  const playerRect = player.getBoundingClientRect();
-  const gameRect = game.getBoundingClientRect();
-
-  keyImg.style.left =
-    (playerRect.left - gameRect.left) + (playerRect.width / 2) - 20 + "px";
-  keyImg.style.top =
-    (playerRect.top - gameRect.top) - 45 + "px";
-
-  game.appendChild(keyImg);
-
-  setTimeout(() => keyImg.remove(), 1200);
-}
-
-/* =========================
-   Item POPUP 
-   ========================= */
-function showItemPopup(src, ms = 1200) {
-  const img = document.createElement("img");
-  img.src = src;
-  img.className = "key-popup"; // gleiche CSS/Animation wie Schlüssel damit man keine neue CSS braucht
-
-  // Position relativ zum #game Container (gleich wie showKeyPopup)
-  const playerRect = player.getBoundingClientRect();
-  const gameRect = game.getBoundingClientRect();
-
-  img.style.left =
-    (playerRect.left - gameRect.left) + (playerRect.width / 2) - 20 + "px";
-  img.style.top =
-    (playerRect.top - gameRect.top) - 45 + "px";
-
-  game.appendChild(img);
-  setTimeout(() => img.remove(), ms);
-}
-window.showItemPopup = showItemPopup;
-
-function showArrowsPopup(ms = 2200) {
-  const img = document.createElement("img");
-  img.src = "assets/arrows.png";
-  img.className = "arrow-popup";
-
-  // Position relativ zum #game Container
-  const playerRect = player.getBoundingClientRect();
-  const gameRect = game.getBoundingClientRect();
-
-  // mittig über dem Kopf (Werte ggf. feinjustieren)
-  img.style.left = (playerRect.left - gameRect.left) + (playerRect.width / 2) - 40 + "px";
-  img.style.top  = (playerRect.top - gameRect.top) - 80 + "px";
-
-  game.appendChild(img);
-  setTimeout(() => img.remove(), ms);
-}
-
-/* =========================
-   INPUT
-   ========================= */
-document.addEventListener("keydown", (e) => {
-  const k = e.key.toLowerCase();
-
-  if (e.key === "Enter" && !gameStarted) {
-    gameStarted = true;
-    startScreen.classList.add("startscreen-hide");
-    loadLevel(window.LEVEL1);
-      // Arrow-Hint direkt nach Spawn (1 Frame warten, damit Position stimmt)
-     // 3 Sekunden warten, dann Pfeile anzeigen
-    setTimeout(() => {
-    showArrowsPopup(2200);
-  }, 1200);
-    update._lastTime = null;
-    requestAnimationFrame(update);
-
-    return;
+ 
+  function resetPendingPickup() { pendingPickup = null; }
+  function resetFuseSequence() { fuseStep = 0; }
+  function resetSysSequence() { sysStep = 0; }
+ 
+  function applyPhase6WorldChanges(level, ctx) {
+  const L = level || window.LEVEL2;
+  if (!L) return;
+ 
+  if (L.cowConfig) L.cowConfig.enabled = false;
+  if (L.cows) L.cows.cow = false;
+ 
+  if (Array.isArray(L.walls)) {
+    L.walls = L.walls.map(row => row.replace(/k/g, "0").replace(/K/g, "0"));
   }
-
-    // R = Full Restart
-  if (k === "r") {
-    e.preventDefault();
-    restartGame(); // macht window.location.reload()
-    return;
+ 
+  if (ctx && typeof ctx.removeAllCowDecos === "function") {
+    ctx.removeAllCowDecos();
+  } else {
+    document.querySelectorAll(".cow-deco").forEach(el => el.remove());
   }
-
-
-// SPACE = shoot (wenn Waffe), sonst Interact
-if ((k === " " || e.code === "Space") && gameStarted) {
-  e.preventDefault();
-  if (HAS_GUN) shootCorn();
-  else handleInteract();
-  return;
-}
-
-// OPTIONAL: Interact zusätzlich auf "E"
-if (k === "e" && gameStarted) {
-  e.preventDefault();
-  handleInteract();
-  return;
-}
-
-  // DEBUG: Shift + L = Level sofort lösen
-if (e.shiftKey && e.key.toLowerCase() === "l") {
-  e.preventDefault();
-  forceSolveCurrentLevel();
-  return;
-}
-
-  switch (k) {
-    case "arrowright":
-    case "d": keys.right = true; break;
-    case "arrowleft":
-    case "a": keys.left = true; break;
-    case "arrowup":
-    case "w": keys.up = true; break;
-    case "arrowdown":
-    case "s": keys.down = true; break;
-    default: return;
   }
-  e.preventDefault();
-});
-
-document.addEventListener("keyup", (e) => {
-  switch (e.key.toLowerCase()) {
-    case "arrowright":
-    case "d": keys.right = false; break;
-    case "arrowleft":
-    case "a": keys.left = false; break;
-    case "arrowup":
-    case "w": keys.up = false; break;
-    case "arrowdown":
-    case "s": keys.down = false; break;
-    default: return;
-  }
-  e.preventDefault();
-});
-
-/* =========================
-   TILE HELPERS + INTERACT
-   ========================= */
-function getTileAt(level, tx, ty) {
-  if (!level) return "1";
-  if (typeof level.getTile === "function") return level.getTile(tx, ty);
-
-  if (tx < 0 || ty < 0 || tx >= level.cols || ty >= level.rows) return "1";
-  const row = level.walls[ty];
-  if (!row) return "1";
-  return row[tx] ?? "1";
-}
-
+ 
   function removeAllFullDecos() {
     document.querySelectorAll(".full-deco").forEach(el => el.remove());
   }
-
+ 
   function renderFullDecosFromV(level, ctx) {
     const L = level || window.LEVEL2;
     if (!L || !L.fullConfig || !L.fullConfig.enabled) return;
-
+ 
     removeAllFullDecos();
-
+ 
     const tileSize = L.tileSize || 32;
     const cfg = L.fullConfig;
-
+ 
     const host =
       document.getElementById("gameContainer") ||
       document.querySelector("canvas")?.parentElement ||
       document.body;
-
+ 
     const hostStyle = getComputedStyle(host);
     if (hostStyle.position === "static") host.style.position = "relative";
-
+ 
     for (let ty = 0; ty < L.rows; ty++) {
       const row = L.walls?.[ty] || "";
       for (let tx = 0; tx < L.cols; tx++) {
         if (row[tx] !== "V") continue;
-
+ 
         const el = document.createElement("img");
         el.className = "full-deco";
         el.src = cfg.sprite;
         el.alt = "full";
-
+ 
         el.style.position = "absolute";
         el.style.left = `${tx * tileSize + (cfg.ox || 0)}px`;
         el.style.top  = `${ty * tileSize + (cfg.oy || 0)}px`;
-
+ 
         if (cfg.wTiles) el.style.width = `${cfg.wTiles * tileSize}px`;
         if (cfg.hTiles) el.style.height = `${cfg.hTiles * tileSize}px`;
-
+ 
         el.style.transformOrigin = "top left";
         el.style.transform = `scale(${cfg.scale ?? 1})`;
-
+ 
         el.style.transformOrigin = "top left";
         el.style.transform = `scale(${cfg.scale ?? 1})`;
-
+ 
         el.style.pointerEvents = "none";
         el.style.imageRendering = "pixelated";
         el.style.zIndex = cfg.behindPlayer ? "2" : "20";
-
+ 
         host.appendChild(el);
       }
     }
   }
-
+ 
   function triggerPhase6Transition(ctx) {
     // Wenn dein game.js eine Fade-Funktion hat, nutze sie (falls vorhanden)
     if (ctx && typeof ctx.fadeToBlack === "function") {
@@ -619,90 +452,50 @@ function getTileAt(level, tx, ty) {
       });
       return;
     }
-
-  // Exit freischalten (unsichtbare Wand entfernen)
-  unlockBossExit(currentLevel);
-
-  bossChest.el.remove();
-  bossChest = null;
-  return;
-}
-
-
-  // 0b) P-Truhe (Gun) öffnen
-  // P-Truhe in Reichweite finden (max 1 Tile Entfernung)
-if (!HAS_GUN) {
-  for (let dy = -1; dy <= 1; dy++) {
-    for (let dx = -1; dx <= 1; dx++) {
-      const ntx = tx + dx;
-      const nty = ty + dy;
-      if (getTileAt(currentLevel, ntx, nty) === "P") {
-        pickupGunFromChest(currentLevel, ntx, nty);
-        return;
-      }
+ 
+    // Fallback: Overlay-DIV über dem Canvas
+    const id = "lvlFadeOverlay";
+    let ov = document.getElementById(id);
+    if (!ov) {
+      ov = document.createElement("div");
+      ov.id = id;
+      ov.style.position = "fixed";
+      ov.style.left = "0";
+      ov.style.top = "0";
+      ov.style.width = "100vw";
+      ov.style.height = "100vh";
+      ov.style.background = "black";
+      ov.style.opacity = "0";
+      ov.style.pointerEvents = "none";
+      ov.style.zIndex = "999999";
+      ov.style.transition = "opacity 700ms linear";
+      document.body.appendChild(ov);
     }
-  }
-}
-
-
+ 
+    requestAnimationFrame(() => {
+      ov.style.opacity = "1";
+    });
+ 
     setTimeout(() => {
       phase = 6;
       applyPhase6WorldChanges(ctx?.level, ctx);
       renderFullDecosFromV(ctx?.level, ctx);
-
-  if (typeof fn === "function") {
-    fn({
-      level: currentLevel,
-      tile, tx, ty,
-      showTempMessage,
-      playerEl: player,
-      gameEl: game,
-      facing,
-      playerTile: { tx, ty }
-    });
-    return;
+ 
+      // kurz schwarz lassen, dann wieder aufblenden
+      setTimeout(() => {
+        ov.style.opacity = "0";
+      }, 250);
+    }, 720);
   }
-
-  // 2) Wichtig: onInteract IMMER erlauben (auch wenn tile === "0"),
-  // weil Push-Puzzle "vor dem Spieler" arbeitet.
-  if (typeof currentLevel.onInteract === "function") {
-    currentLevel.onInteract({
-      level: currentLevel,
-      tile, tx, ty,
-      showTempMessage,
-      playerEl: player,
-      gameEl: game,
-      facing,
-      playerTile: { tx, ty }
-    });
-    return;
-  }
-
-  // 3) Falls weder interactions noch onInteract: dann kein Interact
-}
-
-
-/* =========================
-   WALL COLLISION
-   ========================= */
-function isWallTile(tx, ty) {
-  if (!currentLevel) return false;
-  if (tx < 0 || ty < 0 || tx >= currentLevel.cols || ty >= currentLevel.rows) return true;
-
-  if (typeof currentLevel.isSolid === "function") return currentLevel.isSolid(tx, ty) === true;
-  return wallGrid?.[ty]?.[tx] === true;
-}
-
-function rectIntersectsWall(x, y, w, h) {
-  const left = Math.floor(x / TILE);
-  const right = Math.floor((x + w - 1) / TILE);
-  const top = Math.floor(y / TILE);
-  const bottom = Math.floor((y + h - 1) / TILE);
-
-  for (let ty = top; ty <= bottom; ty++) {
-    for (let tx = left; tx <= right; tx++) {
-      if (isWallTile(tx, ty)) return true;
+ 
+  function handleFuseInteract(ctx, tile) {
+    if (phase >= 6) return;
+ 
+    if (phase === 1) {
+      msg(ctx.showTempMessage, "Ein Sicherungskasten....");
+      return;
     }
+<<<<<<< HEAD
   }
   return false;
 }
@@ -721,38 +514,26 @@ function rectIntersectsWall(x, y, w, h) {
       return;
     }
 
+=======
+ 
+>>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
     if (phase === 2) {
       const steps = [
         { expected: "4", text: "Resistance repaired", lockPlayer: true },
         { expected: "5", text: "Lines checked", lockPlayer: true },
         { expected: "6", text: "Fuse fixed", lockPlayer: true }
       ];
-
-/* =========================
-   NEU: PER-LEVEL COW CONFIG
-   ========================= */
-function getCowCfg(level) {
-  const cfg = level?.cowConfig || {};
-  return {
-    enabled: cfg.enabled !== false, // default true
-    sprite: typeof cfg.sprite === "string" ? cfg.sprite : "assets/Cow.png",
-    frameW: typeof cfg.frameW === "number" ? cfg.frameW : 64,
-    frameH: typeof cfg.frameH === "number" ? cfg.frameH : 64,
-    animDur: typeof cfg.animDur === "number" ? cfg.animDur : 0.8,
-    scale: typeof cfg.scale === "number" ? cfg.scale : 2,
-    ox: typeof cfg.ox === "number" ? cfg.ox : 0,
-    oy: typeof cfg.oy === "number" ? cfg.oy : 0,
-    behindPlayer: cfg.behindPlayer === true
-  };
-}
-
+ 
+      const current = steps[fuseStep];
+ 
       if (tile !== current.expected) {
         msg(ctx.showTempMessage, "Short circuit", {lockPlayer: true});
         resetFuseSequence();
         return;
       }
-
+ 
       msg(ctx.showTempMessage, current.text, 300, { lockPlayer: true });
+<<<<<<< HEAD
 
 /* =========================
    BOSS: SPAWN / CLEAR
@@ -1065,200 +846,47 @@ function updateBossFireballs(dt) {
     const fr = { x: f.x, y: f.y, w: 12, h: 12 };
     if (rectsOverlap(fr, p)) {
       restartGame();
+=======
+ 
+      fuseStep++;
+ 
+      if (fuseStep >= steps.length) {
+        setTimeout(() => {
+          msg(ctx.showTempMessage, "Maschine leuchtet");
+        }, 600);
+ 
+        phase = 3;
+        resetFuseSequence();
+      }
+ 
+>>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
       return;
     }
-
-    f.el.style.transform = `translate(${f.x}px, ${f.y}px)`;
   }
-}
-
-/* =========================
-   BOSS: DEATH -> CHEST
-   ========================= */
-function spawnChestAtBoss() {
-  if (!boss) return;
-
-  const s = boss.scale;
-  const cx = boss.x + (64 * s) / 2;
-  const cy = boss.y + (64 * s) / 2;
-
-  const tx = Math.max(0, Math.min(currentLevel.cols - 1, Math.floor(cx / TILE)));
-  const ty = Math.max(0, Math.min(currentLevel.rows - 1, Math.floor(cy / TILE)));
-
-  // falls schon eine Boss-Truhe existiert, erst entfernen
-  if (bossChest?.el) bossChest.el.remove();
-
-  const el = spawnChestAtTile(tx, ty, { className: "boss-chest", z: 6, scale: 3 });
-  bossChest = { el, tx, ty };
-}
-
-
-function removeAllCowDecos() {
-  document.querySelectorAll(".cow-deco").forEach(el => el.remove());
-  cows.length = 0;
-}
-
-function spawnCow(tx, ty, cfg) {
-  const el = cowTpl.cloneNode(false);
-  el.id = "";
-  el.style.display = "block";
-  el.classList.add("anim");
-  el.classList.add("cow-deco");
-
-  // Sprite + Frame (wie Bat/Granny: 96x128)
-  const frameW = cfg.frameW ?? 96;
-  const frameH = cfg.frameH ?? 128;
-
-  // Sheet im Spiel immer 4x2 Frames
-  const sheetW = (cfg.sheetW ?? (frameW * 4));
-  const sheetH = (cfg.sheetH ?? (frameH * 2));
-
-  el.style.setProperty("--cowSprite", `url("${encodeURI(cfg.sprite)}")`);
-  el.style.setProperty("--cowFrameW", `${frameW}px`);
-  el.style.setProperty("--cowFrameH", `${frameH}px`);
-  el.style.setProperty("--cowSheetW", `${sheetW}px`);
-  el.style.setProperty("--cowSheetH", `${sheetH}px`);
-  el.style.setProperty("--cowAnimDur", `${cfg.animDur ?? 0.8}s`);
-
-  if (cfg.behindPlayer) game.insertBefore(el, player);
-  else game.appendChild(el);
-
-  // Position: mittig auf dem Tile (wie bei dir), dann scale
-  const s = cfg.scale ?? 1;
-  const x = tx * TILE + (TILE - frameW * s) / 2 + (cfg.ox ?? 0);
-  const y = ty * TILE + (TILE - frameH * s) / 2 + (cfg.oy ?? 0);
-
-  el.style.transformOrigin = "top left";
-  el.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
-
-  cows.push({ el });
-}
-
-
-function findAllMarkers(level, marker) {
-  const out = [];
-  for (let y = 0; y < level.walls.length; y++) {
-    const row = level.walls[y];
-    for (let x = 0; x < row.length; x++) {
-      if (row[x] === marker) out.push({ tx: x, ty: y });
+ 
+  function handleItemInteract(ctx, tile) {
+    if (phase >= 6) return;
+ 
+    if (phase === 1 || phase === 2 || phase === 3) {
+      if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel?!");
+      if (tile === "2") return msg(ctx.showTempMessage, "Heu?!");
+      if (tile === "3") return msg(ctx.showTempMessage, "Karotten?!");
+      return;
     }
-  }
-  return out;
-}
-
-function applyEnemyTransform(e) {
-  const s = e.cfg.scale;
-  const isWolf = e.type === "wolf";
-  const flip = (isWolf && e.dir === -1) ? -1 : 1;
-
-  const w = e.el.clientWidth; // unskaliert (z.B. Wolf 64)
-  const xFix = (flip === -1) ? (w * s) : 0;
-
-  e.el.style.transformOrigin = "top left";
-  e.el.style.transform = `translate(${e.x + xFix}px, ${e.y}px) scale(${flip * s}, ${s})`;
-}
-
-function spawnEnemy(type, tx, ty) {
-  const tpl = type === "wolf" ? wolfTpl : batTpl;
-  const el = tpl.cloneNode(false);
-  el.id = "";
-  el.style.display = "block";
-  game.appendChild(el);
-
-  const x = tx * TILE + (TILE - el.clientWidth) / 2;
-  const y = ty * TILE + (TILE - el.clientHeight) / 2;
-
-  const e = {
-    type,
-    el,
-    x,
-    y,
-    homeX: x,
-    homeY: y,
-    t: Math.random() * Math.PI * 2,
-    dir: 1,
-    startX: x,
-    maxX: x,
-    cfg: getEnemyCfg(currentLevel, type),
-  };
-
-  e.startX = e.homeX;
-  e.maxX = e.homeX + e.cfg.distance * TILE;
-
-  enemies.push(e);
-  applyEnemyTransform(e);
-}
-
-function updateEnemyInfinity(e) {
-  const { a, b, curveSpeed } = e.cfg;
-
-  const sinT = Math.sin(e.t);
-  const cosT = Math.cos(e.t);
-  const denom = 20 + sinT * sinT;
-
-  const nx = e.homeX + a * cosT / denom;
-  const ny = e.homeY + b * cosT * sinT / denom;
-
-  const dx = nx - e.x;
-  const dy = ny - e.y;
-
-  if (Math.abs(dx) > Math.abs(dy)) {
-    e.dir = dx > 0 ? 1 : -1;
-    setWalkClass(e.el, dx > 0 ? "right" : "left");
-  } else {
-    setWalkClass(e.el, dy > 0 ? "down" : "up");
-  }
-
-  e.x = nx;
-  e.y = ny;
-  e.t += curveSpeed;
-
-  applyEnemyTransform(e);
-}
-
-function updateWolfPatrolX(e) {
-  const speed = e.cfg.patrolSpeed;
-
-  e.x += speed * e.dir;
-
-  if (e.x >= e.maxX) { e.x = e.maxX; e.dir = -1; }
-  if (e.x <= e.startX) { e.x = e.startX; e.dir = 1; }
-
-  setWalkClass(e.el, e.dir === 1 ? "right" : "left");
-  applyEnemyTransform(e);
-}
-
-function updateEnemy(e) {
-  if (e.type === "wolf" && e.cfg.mode === "patrolX") return updateWolfPatrolX(e);
-  return updateEnemyInfinity(e);
-}
-
-/* =========================
-   TILE 8 – Granny Sprites
-   ========================= */
-function renderTile8Sprites(level) {
-  let decor = document.getElementById("decor");
-  if (!decor) {
-    decor = document.createElement("div");
-    decor.id = "decor";
-    game.insertBefore(decor, player);
-  }
-  decor.innerHTML = "";
-
-  for (let ty = 0; ty < level.rows; ty++) {
-    const row = level.walls[ty];
-    for (let tx = 0; tx < level.cols; tx++) {
-      if (row[tx] === "8") {
-        const el = document.createElement("div");
-        el.className = "tile8-anim";
-        el.style.left = (tx * TILE) + "px";
-        el.style.top = (ty * TILE) + "px";
-        decor.appendChild(el);
+ 
+    if (phase === 5) {
+      return msg(ctx.showTempMessage, "leer");
+    }
+ 
+    if (phase === 4) {
+      const candidate = tileToItem(tile);
+ 
+      if (itemHeld) {
+        msg(ctx.showTempMessage, "Tasche voll");
+        resetPendingPickup();
+        return;
       }
-    }
-  }
-}
-
+ 
       if (!itemHeld) {
         if (pendingPickup !== tile) {
           pendingPickup = tile;
@@ -1269,46 +897,33 @@ function renderTile8Sprites(level) {
         } else {
           itemHeld = candidate;
           pendingPickup = null;
-
+ 
           // Popup-Bild über Player anzeigen
           if (typeof window.showItemPopup === "function") {
             if (tile === "I") window.showItemPopup("assets/gummi.png");
             if (tile === "2") window.showItemPopup("assets/heu.png");
             if (tile === "3") window.showItemPopup("assets/Karotten.png");
           }
+<<<<<<< HEAD
 
           if (tile === "I") return msg(ctx.showTempMessage, "Rubber boots taken");
           if (tile === "2") return msg(ctx.showTempMessage, "Hayeu taken");
           if (tile === "3") return msg(ctx.showTempMessage, "Carrots taken");
+=======
+ 
+          if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel genommen");
+          if (tile === "2") return msg(ctx.showTempMessage, "Heu genommen");
+          if (tile === "3") return msg(ctx.showTempMessage, "Karotten genommen");
+>>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
           return;
         }
       }
     }
   }
-}
-
-/* =========================
-   LEVEL LOADER
-   ========================= */
-function loadLevel(level) {
-  const puzzleLayer = document.getElementById("puzzleLayer");
-if (puzzleLayer) puzzleLayer.remove();
-
-  // alte Layer löschen (falls vorhanden)
-  const decor = document.getElementById("decor");
-  if (decor) decor.innerHTML = "";
-  const tiles = document.getElementById("tiles");
-  if (tiles) tiles.innerHTML = "";
-
-  // Level klonen (Original nicht mutieren)
-  currentLevel = {
-    ...level,
-    walls: level.walls.map(r => ("" + r)),
-    flags: level.flags ? structuredClone(level.flags) : undefined,
-    _spentTriggers: level._spentTriggers ? new Set(level._spentTriggers) : undefined
-  };
-  level = currentLevel;
-
+ 
+  function handleCowInteract(ctx) {
+    if (phase >= 6) return;
+ 
     if (phase === 1) {
       msg(ctx.showTempMessage, "Moo...I am ready, but the machine isn't working",{lockPlayer: true});
       phase = 2;
@@ -1316,6 +931,7 @@ if (puzzleLayer) puzzleLayer.remove();
       resetPendingPickup();
       return;
     }
+<<<<<<< HEAD
 
     if (phase === 2) {
       msg(ctx.showTempMessage, "Machine needs to be repaired");
@@ -1329,13 +945,14 @@ if (puzzleLayer) puzzleLayer.remove();
     if (vx) {
       const nx = px + vx;
       if (canMoveTo(nx, py)) px = nx;
+=======
+ 
+    if (phase === 2) {
+      msg(ctx.showTempMessage, "Maschine muss repariert werden");
+      return;
+>>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
     }
-    if (vy) {
-      const ny = py + vy;
-      if (canMoveTo(px, ny)) py = ny;
-    }
-player.style.animation = "";
-
+ 
     if (phase === 3) {
       msg(ctx.showTempMessage, "Moo... I'm hungry from waiting.",{lockPlayer: true});
       phase = 4;
@@ -1343,6 +960,7 @@ player.style.animation = "";
       resetPendingPickup();
       return;
     }
+<<<<<<< HEAD
   }
 
     if (phase === 4) {
@@ -1360,10 +978,22 @@ player.style.animation = "";
 
       if (itemHeld === "boots") {
         msg(ctx.showTempMessage, "Moo..what should I do with that?");
+=======
+ 
+    if (phase === 4) {
+      if (!itemHeld) {
+        msg(ctx.showTempMessage, "Muh.. bin hungrig vom warten");
+        return;
+      }
+ 
+      if (itemHeld === "boots") {
+        msg(ctx.showTempMessage, "Was soll ich damit ");
+>>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
         itemHeld = null;
         resetPendingPickup();
         return;
       }
+<<<<<<< HEAD
   if (tileHere === "Y" && window.LEVEL3 && currentLevel.id === "level2") {
     loadLevel(window.LEVEL3);
     requestAnimationFrame(update);
@@ -1372,10 +1002,16 @@ player.style.animation = "";
 
       if (itemHeld === "carrots") {
         msg(ctx.showTempMessage, "Moo... I don't like those");
+=======
+ 
+      if (itemHeld === "carrots") {
+        msg(ctx.showTempMessage, "Ne mag ich nicht");
+>>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
         itemHeld = null;
         resetPendingPickup();
         return;
       }
+<<<<<<< HEAD
   // Level 3 -> Level 4 (du nutzt jetzt "Q")
   if (tileHere === "Q" && window.LEVEL4 && currentLevel.id === "level3") {
     loadLevel(window.LEVEL4);
@@ -1386,24 +1022,36 @@ player.style.animation = "";
       if (itemHeld === "hay") {
         msg(ctx.showTempMessage, "Moo...that looks delicious", { lockPlayer: true });
 
+=======
+ 
+      if (itemHeld === "hay") {
+        msg(ctx.showTempMessage, "Das sieht lecker aus .......", { lockPlayer: true });
+ 
+>>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
         setTimeout(() => {
         msg(
          ctx.showTempMessage,
         "Everything is now ready, activate the system.",
         { lockPlayer: true }
          );
-
+ 
         phase = 5;
         itemHeld = null;
         resetPendingPickup();
         resetSysSequence();
         }, 2000); // kleine Pause zwischen den Texten
-
+ 
       return;
       }
-
+ 
+    }
+ 
+    if (phase === 5) {
+      msg(ctx.showTempMessage, "Computer starten das System");
+      return;
     }
   }
+<<<<<<< HEAD
 
     if (phase === 5) {
       msg(ctx.showTempMessage, "The computers start the system");
@@ -1414,3 +1062,7 @@ player.style.animation = "";
   // WICHTIG: Loop immer weiter laufen lassen
   requestAnimationFrame(update);
 }
+=======
+})();
+ 
+>>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
