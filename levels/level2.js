@@ -106,9 +106,11 @@
  
     _spentTriggers: new Set(),
  
-    flags: {  uUnlocked: false,     // U bleibt solid bis N nach Phase6 triggert
+flags: {
+  uUnlocked: false,     // U bleibt solid bis N nach Phase6 triggert
   hackCollected: false  // damit Hack nur einmal eingesammelt wird
- },
+},
+
  
     getTile(tx, ty) {
       if (tx < 0 || ty < 0 || tx >= this.cols || ty >= this.rows) return "1";
