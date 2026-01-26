@@ -34,6 +34,22 @@
       behindPlayer: true
     },
 
+    fullConfig: {
+  enabled: true,
+  sprite: "assets/voll.png",
+
+  // Größenanpassung wie bei cowConfig
+  scale: 1,     // z.B. 1.2 = größer
+  ox: 1100,        // Pixel-Offset X
+  oy: -10,        // Pixel-Offset Y
+
+  behindPlayer: true, // true => hinter Player, false => davor
+
+  wTiles: 8,
+  hTiles: 6
+},
+
+
     cows: { cow: true },
 
     enemies: { bat: true, wolf: false },
@@ -43,9 +59,9 @@
     walls: [
       "000000000000000000000000000000000000000000000",
       "001111111111111111111111111111111111111111100",
-      "00133220II000000000000000666000000MMMMMMMM100",
-      "00133220II000000000000000666000000MMMMMMMM100",
-      "00133220II000000000000000666000000MMMMMMMM100",
+      "00133220II000000000000000666600000MMMMMMMM100",
+      "00133220II000000000000000666600000MMMMMMMM100",
+      "00133220II000000000000000666600000MMMMMMMM100",
       "0010000000000000000000000000000000MMMMM000100",
       "001000000000000000000000000044000000000555100",
       "001000000000000000001111110044000000000555100",
@@ -76,7 +92,7 @@
       "001000000000000000000000000000000000000000100",
       "001000000000000000000000000000000000000000100",
       "0010HHHHHH00000000000000000000000000000000UY0",
-      "0010HHHHHH000000000000000000000000000000NNUY0",
+      "0010HHVHHH000000000000000000000000000000NNUY0",
       "0010HHHHHH000000000000000000000000000000NNUY0",
       "0010HHHHHH00000000000000000000000000000000111",
       "111111111111111111111000011111111111111111111",
@@ -185,7 +201,7 @@ if (phase >= 6 && t === "N") {
             resetSysSequence();
             return;
           }
-          msg(ctx.showTempMessage, "Förderband initialisiert");
+          msg(ctx.showTempMessage, "Container initialisiert");
           sysStep = 3;
 
           // NEU: Schwarzblende + Phase6 + Kuh-Sprite swap
@@ -258,16 +274,32 @@ if (phase >= 6 && t === "N") {
   let pendingPickup = null;
   let sysStep = 0;
 
-  function msg(showTempMessage, text, duration = 2200, extra = {}) {
-    showTempMessage(text, duration, {
-      x: "50%",
-      y: "50%",
-      center: true,
-      typewriter: true,
-      charDelay: 26,
-      ...extra
-    });
+  function msg(showTempMessage, text, duration, extra = {}) {
+  // 🔒 erlaubt auch: msg(fn, "Text", { lockPlayer: true })
+  if (duration && typeof duration === "object") {
+    extra = duration;
+    duration = undefined;
   }
+
+  const charDelay = extra.charDelay ?? 40;     // einheitlich
+  const base = extra.baseTime ?? 900;          // Mindestanzeigezeit
+  const minTime = text.length * charDelay + base;
+
+  // wenn duration nicht gesetzt oder zu klein: minTime nehmen
+  const finalDuration =
+    (typeof duration === "number" && duration > 0)
+      ? Math.max(duration, minTime)
+      : minTime;
+
+  showTempMessage(text, finalDuration, {
+    x: "50%",
+    y: "50%",
+    center: true,
+    typewriter: true,
+    charDelay,               // <-- wichtig: nicht hart 40 überschreiben
+    ...extra
+  });
+}
 
   function tileToItem(tile) {
     if (tile === "I") return "boots";
@@ -298,12 +330,66 @@ if (phase >= 6 && t === "N") {
   }
   }
 
+  function removeAllFullDecos() {
+    document.querySelectorAll(".full-deco").forEach(el => el.remove());
+  }
+
+  function renderFullDecosFromV(level, ctx) {
+    const L = level || window.LEVEL2;
+    if (!L || !L.fullConfig || !L.fullConfig.enabled) return;
+
+    removeAllFullDecos();
+
+    const tileSize = L.tileSize || 32;
+    const cfg = L.fullConfig;
+
+    const host =
+      document.getElementById("gameContainer") ||
+      document.querySelector("canvas")?.parentElement ||
+      document.body;
+
+    const hostStyle = getComputedStyle(host);
+    if (hostStyle.position === "static") host.style.position = "relative";
+
+    for (let ty = 0; ty < L.rows; ty++) {
+      const row = L.walls?.[ty] || "";
+      for (let tx = 0; tx < L.cols; tx++) {
+        if (row[tx] !== "V") continue;
+
+        const el = document.createElement("img");
+        el.className = "full-deco";
+        el.src = cfg.sprite;
+        el.alt = "full";
+
+        el.style.position = "absolute";
+        el.style.left = `${tx * tileSize + (cfg.ox || 0)}px`;
+        el.style.top  = `${ty * tileSize + (cfg.oy || 0)}px`;
+
+        if (cfg.wTiles) el.style.width = `${cfg.wTiles * tileSize}px`;
+        if (cfg.hTiles) el.style.height = `${cfg.hTiles * tileSize}px`;
+
+        el.style.transformOrigin = "top left";
+        el.style.transform = `scale(${cfg.scale ?? 1})`;
+
+        el.style.transformOrigin = "top left";
+        el.style.transform = `scale(${cfg.scale ?? 1})`;
+
+        el.style.pointerEvents = "none";
+        el.style.imageRendering = "pixelated";
+        el.style.zIndex = cfg.behindPlayer ? "2" : "20";
+
+        host.appendChild(el);
+      }
+    }
+  }
+
   function triggerPhase6Transition(ctx) {
     // Wenn dein game.js eine Fade-Funktion hat, nutze sie (falls vorhanden)
     if (ctx && typeof ctx.fadeToBlack === "function") {
       ctx.fadeToBlack(700, () => {
         phase = 6;
         applyPhase6WorldChanges(ctx?.level, ctx);
+        renderFullDecosFromV(ctx?.level, ctx);
       });
       return;
     }
@@ -334,6 +420,7 @@ if (phase >= 6 && t === "N") {
     setTimeout(() => {
       phase = 6;
       applyPhase6WorldChanges(ctx?.level, ctx);
+      renderFullDecosFromV(ctx?.level, ctx);
 
       // kurz schwarz lassen, dann wieder aufblenden
       setTimeout(() => {
@@ -352,20 +439,20 @@ if (phase >= 6 && t === "N") {
 
     if (phase === 2) {
       const steps = [
-        { expected: "4", text: "Widerstand repariert" },
-        { expected: "5", text: "Leitungen überprüft" },
-        { expected: "6", text: "Sicherung repariert" }
+        { expected: "4", text: "Widerstand repariert", lockPlayer: true },
+        { expected: "5", text: "Leitungen überprüft", lockPlayer: true },
+        { expected: "6", text: "Sicherung repariert", lockPlayer: true }
       ];
 
       const current = steps[fuseStep];
 
       if (tile !== current.expected) {
-        msg(ctx.showTempMessage, "Kurzschluss");
+        msg(ctx.showTempMessage, "Kurzschluss", {lockPlayer: true});
         resetFuseSequence();
         return;
       }
 
-      msg(ctx.showTempMessage, current.text, 300);
+      msg(ctx.showTempMessage, current.text, 300, { lockPlayer: true });
 
       fuseStep++;
 
@@ -408,9 +495,9 @@ if (phase >= 6 && t === "N") {
       if (!itemHeld) {
         if (pendingPickup !== tile) {
           pendingPickup = tile;
-          if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel ?!...mitnehmen?");
-          if (tile === "2") return msg(ctx.showTempMessage, "Heu?!...mitnehmen");
-          if (tile === "3") return msg(ctx.showTempMessage, "KArotten?!...mitnehmen");
+          if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel ?!...mitnehmen?",{lockPlayer: true});
+          if (tile === "2") return msg(ctx.showTempMessage, "Heu?!...mitnehmen",{lockPlayer: true});
+          if (tile === "3") return msg(ctx.showTempMessage, "Karotten?!...mitnehmen",{lockPlayer: true});
           return;
         } else {
           itemHeld = candidate;
@@ -436,7 +523,7 @@ if (phase >= 6 && t === "N") {
     if (phase >= 6) return;
 
     if (phase === 1) {
-      msg(ctx.showTempMessage, "Muh...Bin bereit, aber maschine kaputt");
+      msg(ctx.showTempMessage, "Muh...Bin bereit, aber maschine kaputt",{lockPlayer: true});
       phase = 2;
       resetFuseSequence();
       resetPendingPickup();
@@ -449,7 +536,7 @@ if (phase >= 6 && t === "N") {
     }
 
     if (phase === 3) {
-      msg(ctx.showTempMessage, "Muh.. bin hungrig vom warten");
+      msg(ctx.showTempMessage, "Muh.. bin hungrig vom warten",{lockPlayer: true});
       phase = 4;
       itemHeld = null;
       resetPendingPickup();
@@ -477,13 +564,24 @@ if (phase >= 6 && t === "N") {
       }
 
       if (itemHeld === "hay") {
-        msg(ctx.showTempMessage, "Das sieht lecker aus ....... Nun ist alles bereit, aktiviere das System");
+        msg(ctx.showTempMessage, "Das sieht lecker aus .......", { lockPlayer: true });
+
+        setTimeout(() => {
+        msg(
+         ctx.showTempMessage,
+        "Nun ist alles bereit, aktiviere das System",
+        { lockPlayer: true }
+         );
+
         phase = 5;
         itemHeld = null;
         resetPendingPickup();
         resetSysSequence();
-        return;
+        }, 2000); // kleine Pause zwischen den Texten
+
+      return;
       }
+
     }
 
     if (phase === 5) {
