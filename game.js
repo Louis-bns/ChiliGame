@@ -154,12 +154,19 @@ function showTempMessage(text, ms = 2000, opts = {}) {
     lockPlayer = false
   } = opts;
 
-  if (showTempMessage._locked) {
+  // ✅ NEU: Wenn eine vorherige Message den Player gelockt hat, beim Überschreiben sauber unlocken
+  if (showTempMessage._locked && !lockPlayer) {
     PLAYER_LOCKED = false;
     showTempMessage._locked = false;
   }
 
-  if (lockPlayer) PLAYER_LOCKED = true;
+  // ✅ NEU: Lock-Status für diese Message merken
+  showTempMessage._locked = !!lockPlayer;
+
+  // 🔒 Lock setzen (wenn gewünscht)
+  if (lockPlayer) {
+    PLAYER_LOCKED = true;
+  }
 
   wrap.style.position = "absolute";
   wrap.style.left = typeof x === "number" ? `${x}px` : x;
@@ -173,8 +180,12 @@ function showTempMessage(text, ms = 2000, opts = {}) {
     showTempMessage._typeTimer = null;
   }
 
+  // ✅ Unlock-Funktion: Unlock nur, wenn DIESE Message gelockt hat
   const unlock = () => {
-    if (lockPlayer) PLAYER_LOCKED = false;
+    if (showTempMessage._locked && lockPlayer) {
+      PLAYER_LOCKED = false;
+      showTempMessage._locked = false;
+    }
     wrap.style.display = "none";
   };
 
@@ -1238,6 +1249,12 @@ function renderDebugWalls(level) {
    LEVEL LOADER
    ========================= */
 function loadLevel(level) {
+
+   // ✅ HIER GANZ OBEN REIN (als allererstes)
+  document.querySelectorAll(".full-deco").forEach(el => el.remove());
+
+  const ov = document.getElementById("lvlFadeOverlay");
+  if (ov) ov.remove();
   const puzzleLayer = document.getElementById("puzzleLayer");
   if (puzzleLayer) puzzleLayer.remove();
 
@@ -1253,6 +1270,8 @@ function loadLevel(level) {
     _spentTriggers: level._spentTriggers ? new Set(level._spentTriggers) : undefined
   };
   level = currentLevel;
+
+
 
   TILE = level.tileSize;
 

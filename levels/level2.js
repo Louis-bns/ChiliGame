@@ -1,136 +1,128 @@
-const game = document.getElementById("game");
-const player = document.getElementById("player");
-const startScreen = document.getElementById("startscreen");
+(function () {
+  window.LEVEL2 = {
+    id: "level2",
+    cols: 45,
+    rows: 45,
+    tileSize: 32,
 
-const restartBtn = document.getElementById("restartBtn");
-if (restartBtn) restartBtn.addEventListener("click", restartGame);
+    background: "assets/LEVEL2.png",
 
-const batTpl = document.getElementById("batTpl");
-const wolfTpl = document.getElementById("wolfTpl");
-const cowTpl = document.getElementById("cowTpl"); // NEU
+    spawnChar: "Z",
+    spawn: { tx: 25, ty: 42 },
 
-let gameStarted = false;
+    enemyConfig: {
+      wolf: { mode: "patrolX", distance: 10, speed: 1.4, scale: 4 },
+      bat: { mode: "infinity", a: 8000, b: 5000, speed: 0.01, scale: 0.9 }
+    },
 
-/* =========================
-   LEVEL STATE
-   ========================= */
-let currentLevel = null;
-let wallGrid = null; // 2D boolean [row][col]
-let TILE = 32;
-let HAS_GUN = false;
-const bullets = []; // { el, x, y, vx, vy, born }
-const BULLET_SPEED = 900;      // px/s
-const BULLET_LIFETIME = 1200;  // ms
-const SHOOT_COOLDOWN = 140;    // ms
-let _lastShotAt = 0;
-// Truhen
-const gunChests = new Map(); // key "tx,ty" -> { el, tx, ty }
-let bossChest = null;        // { el, tx, ty }
+    // NEU: Kuh-Konfig (Deko, ohne Hitbox), wird auf jedem "K" Tile gerendert
+    cowConfig: {
+      enabled: true,
+      sprite: "assets/Cow.png",
+      spritePatched: "assets/Cow_pflaster.png", // <-- NEU: Kuh mit Pflaster
 
-/* =========================
-   BOSS STATE
-   ========================= */
-let boss = null; // { el, x,y, vx,vy, dirX, dirY, speed, baseSpeed, scale, nextTurnAt, nextShotAt }
-const bossFireballs = []; // { el, x,y, vx,vy, born }
-const BOSS_FIREBALL_SPEED = 520;   // px/s
-const BOSS_FIREBALL_LIFETIME = 2400; // ms
-const BOSS_HIT_BASE = { w: 54, h: 54, ox: 5, oy: 5 }; // Boss 64x64 -> fairer Hit
+      frameW: 96,
+      frameH: 128,
 
-/* =========================
-   SETTINGS
-   ========================= */
-const SPEED = 240;
+      sheetW: 384,
+      sheetH: 256,
 
-// Player Hitbox
-const PLAYER_HIT = { w: 40, h: 60 };
+      animDur: 0.8,
+      scale: 1,
+      ox: 0,
+      oy: 0,
+      behindPlayer: true
+    },
 
-// Default scales (kannst du pro Level überschreiben)
-const DEFAULT_SCALES = { wolf: 4, bat: 1 };
+    fullConfig: {
+  enabled: true,
+  sprite: "assets/voll.png",
 
-// Enemy Hitboxen (fair; ggf. anpassen)
-// Hitboxen in "Sprite-Pixeln" (unskaliert), werden in getEnemyHitRect mit scale multipliziert
-const BAT_HIT_BASE = { w: 70, h: 70, ox: 13, oy: 28 }; // Bat: Element 96x128
-const WOLF_HIT_BASE = { w: 56, h: 56, ox: 4, oy: 4 };  // Wolf: Element 64x64
+  // Größenanpassung wie bei cowConfig
+  scale: 1,     // z.B. 1.2 = größer
+  ox: 1100,        // Pixel-Offset X
+  oy: -10,        // Pixel-Offset Y
 
-// Spawn Schutz
-let SAFE_UNTIL = 0;
+  behindPlayer: true, // true => hinter Player, false => davor
 
-/* =========================
-   STATE
-   ========================= */
-let px = 0, py = 0;
-let facing = "down"; // "left" | "right" | "up" | "down"
-let facingX = "right";   // merkt letzte horizontale Richtung
-const keys = { left: false, right: false, up: false, down: false };
-const enemies = []; // {type, el, x,y, homeX,homeY, t, cfg, dir, startX, maxX}
-const cows = [];    // NEU: reine Deko (ohne Hitbox)
-let PLAYER_LOCKED = false; // für bearbeitung spiel modus wechseln ( Locked bei Text)
+  wTiles: 8,
+  hTiles: 6
+},
 
-/* =========================
-   SPEECH BUBBLE (HUD)
-   ========================= */
-function ensureMessageBox() {
-  const container = document.getElementById("game");
-  let wrap = document.getElementById("msgWrap");
-  if (wrap) return wrap._textEl;
 
-  wrap = document.createElement("div");
-  wrap.id = "msgWrap";
-  wrap.style.position = "absolute";
-  wrap.style.zIndex = "9999";
-  wrap.style.pointerEvents = "none";
+    cows: { cow: true },
 
-  const bubble = document.createElement("div");
-  bubble.style.position = "relative";
-  bubble.style.background = "#fff";
-  bubble.style.color = "#111";
-  bubble.style.border = "4px solid #111";
-  bubble.style.boxShadow = "6px 6px 0 #000";
-  bubble.style.borderRadius = "0";
-  bubble.style.fontFamily = '"Press Start 2P", monospace';
-  bubble.style.fontSize = "32px";
-  bubble.style.lineHeight = "1.6";
-  bubble.style.maxWidth = "600px";
-  bubble.style.padding = "14px 16px";
-  bubble.style.whiteSpace = "pre-wrap";
-  bubble.style.wordBreak = "normal";
-  bubble.style.overflowWrap = "break-word";
+    enemies: { bat: true, wolf: false },
 
-  const textEl = document.createElement("div");
-  bubble.appendChild(textEl);
+    renderWalls: false,
 
-  const tailBorder = document.createElement("div");
-  tailBorder.style.position = "absolute";
-  tailBorder.style.left = "28px";
-  tailBorder.style.top = "100%";
-  tailBorder.style.width = "0";
-  tailBorder.style.height = "0";
-  tailBorder.style.borderLeft = "14px solid transparent";
-  tailBorder.style.borderRight = "14px solid transparent";
-  tailBorder.style.borderTop = "18px solid #111";
+    walls: [
+      "000000000000000000000000000000000000000000000",
+      "001111111111111111111111111111111111111111100",
+      "00133220II000000000000000666600000MMMMMMMM100",
+      "00133220II000000000000000666600000MMMMMMMM100",
+      "00133220II000000000000000666600000MMMMMMMM100",
+      "0010000000000000000000000000000000MMMMM000100",
+      "001000000000000000000000000044000000000555100",
+      "001000000000000000001111110044000000000555100",
+      "001000000000000000001100010044000000000555100",
+      "111111111100001111111000011111110001111111111",
+      "000000000100001000000000000000010001000000000",
+      "000000000100001000000000000000010001000000000",
+      "000000000100001000000000000000010001000000000",
+      "000000000100001000000000000000010001000000000",
+      "000000000100001000000000000000010001000000000",
+      "000000000100001000000000000000010001100000000",
+      "000000000100001000000000000000010001000000000",
+      "001111111100001111111000011111110001111111100",
+      "0010000001k00000000011111100AAA0000000CCC0100",
+      "0010000001k00000000000000000AAA0000000CCC0100",
+      "0010000001k00000000000000000AAA0000000CCC0100",
+      "001000K001k0000000000000000000000000000000100",
+      "0011111111k0000000000000000000000000000000100",
+      "001kkkkkkkk0000000001000001000000000000000100",
+      "001000000000001111111000001111110001111111100",
+      "001000000000001000000000000000000000BBB000100",
+      "001000000000001000000000000000000000BBB000100",
+      "001000000000001000000000000000000000BBB000100",
+      "001000000000001000000000000000000000000000100",
+      "001000000000001000000000000000000000000000100",
+      "001000000000001000000000000000000000000000100",
+      "0011111111000011111100000000000F0000000001100",
+      "001000000000000000000000000000000000000000100",
+      "001000000000000000000000000000000000000000100",
+      "0010HHHHHH00000000000000000000000000000000UY0",
+      "0010HHVHHH000000000000000000000000000000NNUY0",
+      "0010HHHHHH000000000000000000000000000000NNUY0",
+      "0010HHHHHH00000000000000000000000000000000111",
+      "111111111111111111111000011111111111111111111",
+      "1YYYY0000000000000000000000000000000000000001",
+      "1YYYY0000000000000000000000000000000000000001",
+      "1YYYY0000000000000000000000000000000000000001",
+      "1000000000000000000000000Z0000000000000000001",
+      "100000000000000000000000000000000000000000001",
+      "111111111111111111111111111111111111111111111"
+    ],
 
-  const tailInner = document.createElement("div");
-  tailInner.style.position = "absolute";
-  tailInner.style.left = "32px";
-  tailInner.style.top = "100%";
-  tailInner.style.width = "0";
-  tailInner.style.height = "0";
-  tailInner.style.borderLeft = "10px solid transparent";
-  tailInner.style.borderRight = "10px solid transparent";
-  tailInner.style.borderTop = "14px solid #fff";
+    _spentTriggers: new Set(),
 
-  bubble.appendChild(tailBorder);
-  bubble.appendChild(tailInner);
+    flags: {  uUnlocked: false,     // U bleibt solid bis N nach Phase6 triggert
+  hackCollected: false  // damit Hack nur einmal eingesammelt wird
+ },
 
-  wrap.appendChild(bubble);
-  container.appendChild(wrap);
+    getTile(tx, ty) {
+      if (tx < 0 || ty < 0 || tx >= this.cols || ty >= this.rows) return "1";
+      const row = this.walls[ty];
+      if (!row) return "1";
+      return row[tx] ?? "1";
+    },
 
-  textEl._wrap = wrap;
-  wrap._textEl = textEl;
-  wrap.style.display = "none";
+    isSolid(tx, ty) {
+  const t = this.getTile(tx, ty);
+  if (t === "1") return true;
 
-  return textEl;
-}
+  // U ist solid, bis wir es explizit freischalten (nach Fade + N Trigger)
+  if (t === "U" && !this.flags?.uUnlocked) return true;
 
 function showTempMessage(text, ms = 2000, opts = {}) {
   const el = ensureMessageBox();
@@ -238,69 +230,84 @@ function unequipGun() {
 }
 
 
-function restartGame() {
-  if (restartGame._done) return;
-  restartGame._done = true;
-  window.location.reload();
-}
+      "M": (ctx) => {
+        if (phase === 1) return msg(ctx.showTempMessage, "Maschie ist wohl kaputt ...");
+        if (phase === 2) return msg(ctx.showTempMessage, "Irgendwas stimmt mit den Sicherungen nicht.");
+        if (phase === 3) return msg(ctx.showTempMessage, "Repariert und bereit");
+        if (phase === 4 || phase === 5) return msg(ctx.showTempMessage, "Repariert und bereit");
+        return;
+      },
 
-function rectsOverlap(a, b) {
-  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-}
+      "A": (ctx) => {
+        if (phase >= 6) return;
+        if (phase === 5) {
+          if (sysStep !== 0) {
+            msg(ctx.showTempMessage, "Error 404---Abbruch");
+            resetSysSequence();
+            return;
+          }
+          msg(ctx.showTempMessage, "Maschine aktiviert");
+          sysStep = 1;
+          return;
+        }
+        msg(ctx.showTempMessage, "Ein Computer");
+      },
 
-function getBossRect() {
-  const boss = document.getElementById("boss");
-  if (!boss) return null;
+      "B": (ctx) => {
+        if (phase >= 6) return;
+        if (phase === 5) {
+          if (sysStep !== 1) {
+            msg(ctx.showTempMessage, "Error 404---Abbruch");
+            resetSysSequence();
+            return;
+          }
+          msg(ctx.showTempMessage, "Kuh integriert");
+          sysStep = 2;
+          return;
+        }
+        msg(ctx.showTempMessage, "Ein Computer");
+      },
 
-  // Boss-Position relativ zum #game Container
-  const b = boss.getBoundingClientRect();
-  const g = game.getBoundingClientRect();
+      "C": (ctx) => {
+        if (phase >= 6) return;
 
-  return {
-    x: b.left - g.left,
-    y: b.top - g.top,
-    w: b.width,
-    h: b.height
-  };
-}
+        if (phase === 5) {
+          if (sysStep !== 2) {
+            msg(ctx.showTempMessage, "Error 404---Abbruch");
+            resetSysSequence();
+            return;
+          }
+          msg(ctx.showTempMessage, "Container initialisiert");
+          sysStep = 3;
 
-function keyXY(tx, ty) { return `${tx},${ty}`; }
+          // NEU: Schwarzblende + Phase6 + Kuh-Sprite swap
+          triggerPhase6Transition(ctx);
+          return;
+        }
 
-function spawnChestAtTile(tx, ty, { z = 20, scale = 2, className = "" } = {}) {
-  const el = document.createElement("div");
-  el.className = `tile-chest ${className}`.trim();
-  el.style.left = (tx * TILE) + "px";
-  el.style.top  = (ty * TILE) + "px";
-  el.style.zIndex = String(z);
+        msg(ctx.showTempMessage, "Ein Computer");
+      },
 
-  // tile-chest hat schon scale(2) in CSS – wenn du variabel willst:
-  // wir setzen hier per transform direkt (überschreibt CSS)
-  el.style.transform = `translate(-6px, -6px) scale(${scale})`;
-
-  // hinter Player: vor dem Player in den DOM einfügen (und zIndex kleiner als player)
-game.insertBefore(el, player);
-
-  return el;
-}
-
-function setTileChar(level, tx, ty, ch) {
-  const row = level.walls[ty];
-  if (!row) return;
-  level.walls[ty] = row.substring(0, tx) + ch + row.substring(tx + 1);
-}
-
-function unlockBossExit(level) {
-  if (!level) return;
-
-  // Flag (falls du es im Level brauchst)
-  level.flags = level.flags || {};
-  level.flags.bossLooted = true;
-
-  // Unsichtbare Wände entfernen: wir nutzen Tile "V" als Invisible Block
-  // (siehe Patch in LEVEL4 weiter unten)
-  if (Array.isArray(level.walls)) {
-    level.walls = level.walls.map(r => r.replaceAll("V", "0"));
+      // Container (H) - NEU: ab Phase 6 "voll mit hack"
+      "H": (ctx) => {
+  if (phase < 6) {
+    return msg(ctx.showTempMessage, "Container leer");
   }
+
+  const L = ctx.level || window.LEVEL2;
+  L.flags = L.flags || {};
+
+  // Hack nur einmal einsammeln
+  if (!L.flags.hackCollected) {
+    L.flags.hackCollected = true;
+
+    // ✅ U erst JETZT freigeben
+    L.flags.uUnlocked = true;
+
+    // Popup über Player
+    if (typeof window.showItemPopup === "function") {
+      window.showItemPopup("assets/Hack.png");
+    }
 
   showTempMessage("Ein Mechanismus klickt... Der Weg ist frei!", 1600, { typewriter: true, charDelay: 18 });
 }
@@ -472,40 +479,48 @@ function getEnemyHitRect(e) {
   };
 }
 
-function setWalkClass(el, dir) {
-  el.classList.remove("walk-left", "walk-right", "walk-up", "walk-down");
-  if (dir) el.classList.add("walk-" + dir);
+  /* =========================================================
+     PHASEN-LOGIK
+     ========================================================= */
+  let phase = 1;
+
+  let fuseStep = 0;
+  let itemHeld = null;
+  let pendingPickup = null;
+  let sysStep = 0;
+
+  function msg(showTempMessage, text, duration, extra = {}) {
+  // 🔒 erlaubt auch: msg(fn, "Text", { lockPlayer: true })
+  if (duration && typeof duration === "object") {
+    extra = duration;
+    duration = undefined;
+  }
+
+  const charDelay = extra.charDelay ?? 40;     // einheitlich
+  const base = extra.baseTime ?? 900;          // Mindestanzeigezeit
+  const minTime = text.length * charDelay + base;
+
+  // wenn duration nicht gesetzt oder zu klein: minTime nehmen
+  const finalDuration =
+    (typeof duration === "number" && duration > 0)
+      ? Math.max(duration, minTime)
+      : minTime;
+
+  showTempMessage(text, finalDuration, {
+    x: "50%",
+    y: "50%",
+    center: true,
+    typewriter: true,
+    charDelay,               // <-- wichtig: nicht hart 40 überschreiben
+    ...extra
+  });
 }
 
-function forceSolveCurrentLevel() {
-  if (!currentLevel) return;
-
-  // Nur für Level 3 (optional absichern)
-  if (currentLevel.id !== "level3") {
-    console.warn("forceSolve: falsches Level");
-    return;
-  }
-
-  // Alle Targets direkt als gelöst markieren
-  for (const t of currentLevel._targets || []) {
-    currentLevel.setTile(t.tx, t.ty, "L");
-  }
-
-  currentLevel.flags.solved = true;
-
-  // Neu rendern (Tür, Blöcke, etc.)
-  if (typeof currentLevel.renderPuzzle === "function") {
-    currentLevel.renderPuzzle({
-      gameEl: game,
-      showTempMessage
-    });
-  }
-
-  // Offizielles Solve-Event auslösen
-  if (typeof currentLevel.checkSolved === "function") {
-    currentLevel.checkSolved({
-      showTempMessage
-    });
+  function tileToItem(tile) {
+    if (tile === "I") return "boots";
+    if (tile === "2") return "hay";
+    if (tile === "3") return "carrots";
+    return null;
   }
 
   console.log("LEVEL FORCED SOLVED");
@@ -665,46 +680,69 @@ function getTileAt(level, tx, ty) {
   return row[tx] ?? "1";
 }
 
-function getPlayerTilePos(biasPx = 0) {
-  const hitOX = (player.clientWidth - PLAYER_HIT.w) / 2;
-  const hitOY = (player.clientHeight - PLAYER_HIT.h) / 2;
-
-  let cx = px + hitOX + PLAYER_HIT.w / 2;
-  let cy = py + hitOY + PLAYER_HIT.h / 2;
-
-  // Bias in Blickrichtung (macht Interact/Pushing stabiler)
-  if (biasPx) {
-    let dx = 0, dy = 0;
-    if (facing === "right") dx = 1;
-    else if (facing === "left") dx = -1;
-    else if (facing === "up") dy = -1;
-    else dy = 1;
-
-    cx += dx * biasPx;
-    cy += dy * biasPx;
+  function removeAllFullDecos() {
+    document.querySelectorAll(".full-deco").forEach(el => el.remove());
   }
 
-  return { tx: Math.floor(cx / TILE), ty: Math.floor(cy / TILE) };
-}
+  function renderFullDecosFromV(level, ctx) {
+    const L = level || window.LEVEL2;
+    if (!L || !L.fullConfig || !L.fullConfig.enabled) return;
 
-function isNearTile(playerTx, playerTy, targetTx, targetTy, range = 1) {
-  return Math.abs(playerTx - targetTx) <= range && Math.abs(playerTy - targetTy) <= range;
-}
+    removeAllFullDecos();
 
+    const tileSize = L.tileSize || 32;
+    const cfg = L.fullConfig;
 
-function handleInteract() {
-  if (!currentLevel) return;
-  const { tx, ty } = getPlayerTilePos();
+    const host =
+      document.getElementById("gameContainer") ||
+      document.querySelector("canvas")?.parentElement ||
+      document.body;
 
-  // 0) Boss-Truhe öffnen (falls vorhanden)
- if (bossChest && isNearTile(tx, ty, bossChest.tx, bossChest.ty, 1)) {
+    const hostStyle = getComputedStyle(host);
+    if (hostStyle.position === "static") host.style.position = "relative";
 
-  showTempMessage("Du öffnest die Truhe...\nDu hast die 🌶️ Chilischote gefunden!", 2600, {
-    typewriter: true, charDelay: 18, x: "50%", y: "50%", center: true
-  });
+    for (let ty = 0; ty < L.rows; ty++) {
+      const row = L.walls?.[ty] || "";
+      for (let tx = 0; tx < L.cols; tx++) {
+        if (row[tx] !== "V") continue;
 
-  // Liste weiter (z.B. nach Chili)
-setListStep(5); // 🌶️ Chili = Liste5.png
+        const el = document.createElement("img");
+        el.className = "full-deco";
+        el.src = cfg.sprite;
+        el.alt = "full";
+
+        el.style.position = "absolute";
+        el.style.left = `${tx * tileSize + (cfg.ox || 0)}px`;
+        el.style.top  = `${ty * tileSize + (cfg.oy || 0)}px`;
+
+        if (cfg.wTiles) el.style.width = `${cfg.wTiles * tileSize}px`;
+        if (cfg.hTiles) el.style.height = `${cfg.hTiles * tileSize}px`;
+
+        el.style.transformOrigin = "top left";
+        el.style.transform = `scale(${cfg.scale ?? 1})`;
+
+        el.style.transformOrigin = "top left";
+        el.style.transform = `scale(${cfg.scale ?? 1})`;
+
+        el.style.pointerEvents = "none";
+        el.style.imageRendering = "pixelated";
+        el.style.zIndex = cfg.behindPlayer ? "2" : "20";
+
+        host.appendChild(el);
+      }
+    }
+  }
+
+  function triggerPhase6Transition(ctx) {
+    // Wenn dein game.js eine Fade-Funktion hat, nutze sie (falls vorhanden)
+    if (ctx && typeof ctx.fadeToBlack === "function") {
+      ctx.fadeToBlack(700, () => {
+        phase = 6;
+        applyPhase6WorldChanges(ctx?.level, ctx);
+        renderFullDecosFromV(ctx?.level, ctx);
+      });
+      return;
+    }
 
   // Exit freischalten (unsichtbare Wand entfernen)
   unlockBossExit(currentLevel);
@@ -731,11 +769,10 @@ if (!HAS_GUN) {
 }
 
 
-  const tile = getTileAt(currentLevel, tx, ty);
-
-  // 1) Wenn es eine direkte Interaktion für das Tile gibt (z.B. K, F, M, ...)
-  const map = currentLevel.interactions || {};
-  const fn = map[tile];
+    setTimeout(() => {
+      phase = 6;
+      applyPhase6WorldChanges(ctx?.level, ctx);
+      renderFullDecosFromV(ctx?.level, ctx);
 
   if (typeof fn === "function") {
     fn({
@@ -794,31 +831,12 @@ function rectIntersectsWall(x, y, w, h) {
   return false;
 }
 
-/* =========================
-   PER-LEVEL ENEMY CONFIG
-   ========================= */
-function getEnemyCfg(level, type) {
-  const cfg = level?.enemyConfig?.[type] || {};
-  return {
-    // mode: "infinity" | "patrolX"
-    mode: cfg.mode || (type === "wolf" ? "patrolX" : "infinity"),
-
-    scale: typeof cfg.scale === "number" ? cfg.scale : DEFAULT_SCALES[type],
-
-    // infinity
-    a: typeof cfg.a === "number" ? cfg.a : (type === "wolf" ? 180 : 140),
-    b: typeof cfg.b === "number" ? cfg.b : (type === "wolf" ? 140 : 90),
-    curveSpeed: typeof cfg.curveSpeed === "number"
-      ? cfg.curveSpeed
-      : (typeof cfg.speed === "number" ? cfg.speed : (type === "wolf" ? 0.015 : 0.02)),
-
-    // patrolX
-    distance: typeof cfg.distance === "number" ? cfg.distance : 8, // tiles
-    patrolSpeed: typeof cfg.patrolSpeed === "number"
-      ? cfg.patrolSpeed
-      : (typeof cfg.speed === "number" ? cfg.speed : 1.2), // px/frame
-  };
-}
+    if (phase === 2) {
+      const steps = [
+        { expected: "4", text: "Widerstand repariert", lockPlayer: true },
+        { expected: "5", text: "Leitungen überprüft", lockPlayer: true },
+        { expected: "6", text: "Sicherung repariert", lockPlayer: true }
+      ];
 
 /* =========================
    NEU: PER-LEVEL COW CONFIG
@@ -838,21 +856,13 @@ function getCowCfg(level) {
   };
 }
 
-/* =========================
-   ENEMIES (MULTI)
-   ========================= */
-function clearEnemies() {
-  for (const e of enemies) e.el.remove();
-  enemies.length = 0;
-}
+      if (tile !== current.expected) {
+        msg(ctx.showTempMessage, "Kurzschluss", {lockPlayer: true});
+        resetFuseSequence();
+        return;
+      }
 
-/* =========================
-   NEU: COWS (DECO ONLY)
-   ========================= */
-function clearCows() {
-  for (const c of cows) c.el.remove();
-  cows.length = 0;
-}
+      msg(ctx.showTempMessage, current.text, 300, { lockPlayer: true });
 
 /* =========================
    BOSS: SPAWN / CLEAR
@@ -1323,31 +1333,29 @@ function renderTile8Sprites(level) {
   }
 }
 
-/* =========================
-   DEBUG WALLS (per level)
-   ========================= */
-function renderDebugWalls(level) {
-  let tiles = document.getElementById("tiles");
-  if (!tiles) {
-    tiles = document.createElement("div");
-    tiles.id = "tiles";
-    game.insertBefore(tiles, player);
-  }
-  tiles.innerHTML = "";
+      if (!itemHeld) {
+        if (pendingPickup !== tile) {
+          pendingPickup = tile;
+          if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel ?!...mitnehmen?",{lockPlayer: true});
+          if (tile === "2") return msg(ctx.showTempMessage, "Heu?!...mitnehmen",{lockPlayer: true});
+          if (tile === "3") return msg(ctx.showTempMessage, "Karotten?!...mitnehmen",{lockPlayer: true});
+          return;
+        } else {
+          itemHeld = candidate;
+          pendingPickup = null;
 
-  if (!level?.renderWalls) return;
+          // Popup-Bild über Player anzeigen
+          if (typeof window.showItemPopup === "function") {
+            if (tile === "I") window.showItemPopup("assets/gummi.png");
+            if (tile === "2") window.showItemPopup("assets/heu.png");
+            if (tile === "3") window.showItemPopup("assets/Karotten.png");
+          }
 
-  for (let ty = 0; ty < level.rows; ty++) {
-    for (let tx = 0; tx < level.cols; tx++) {
-      if (wallGrid?.[ty]?.[tx]) {
-        const el = document.createElement("div");
-        el.className = "tile wall";
-        el.style.position = "absolute";
-        el.style.left = (tx * TILE) + "px";
-        el.style.top = (ty * TILE) + "px";
-        el.style.width = TILE + "px";
-        el.style.height = TILE + "px";
-        tiles.appendChild(el);
+          if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel genommen");
+          if (tile === "2") return msg(ctx.showTempMessage, "Heu genommen");
+          if (tile === "3") return msg(ctx.showTempMessage, "Karotten genommen");
+          return;
+        }
       }
     }
   }
@@ -1375,143 +1383,12 @@ if (puzzleLayer) puzzleLayer.remove();
   };
   level = currentLevel;
 
-  TILE = level.tileSize;
-
-  // rows/cols ableiten (falls nicht gesetzt)
-  level.rows = level.walls.length;
-  level.cols = level.walls[0]?.length ?? 0;
-
-  // Background pro Level (optional)
-  if (level.background) {
-    const bg = encodeURI(level.background);
-    game.style.backgroundImage = `url("${bg}")`;
-    game.style.backgroundSize = "cover";
-    game.style.backgroundPosition = "center";
-    game.style.backgroundRepeat = "no-repeat";
-  }
-  // kein else: wenn background fehlt, CSS-Background beibehalten
-
-  // Spawn-Char pro Level (optional)
-  const spawnChar = level.spawnChar || "2";
-
-  // Spawn suchen (Marker, sonst fallback)
-  let spawn = null;
-  for (let y = 0; y < level.walls.length; y++) {
-    const x = level.walls[y].indexOf(spawnChar);
-    if (x !== -1) { spawn = { tx: x, ty: y }; break; }
-  }
-  if (!spawn) spawn = level.spawn;
-
-  // Enemies aus Markern
-  clearEnemies();
-  clearCows();
-  clearBoss();
-
-  
-
-
-  const wolfSpawns = level.enemies?.wolf ? findAllMarkers(level, "W") : [];
-  const batSpawns  = level.enemies?.bat  ? findAllMarkers(level, "F") : [];
-
-  // NEU: Kuh-Spawns über "K" (bleibt im Grid für Interactions!)
-  const cowCfg = getCowCfg(level);
-  const cowSpawns = (cowCfg.enabled && level?.cows?.cow) ? findAllMarkers(level, "K") : [];
-
-  // Marker entfernen (spawn + enemy marker -> "0")
-  // WICHTIG: "K" NICHT entfernen, sonst geht interactions["K"] nicht mehr
-  level.walls = level.walls.map(r =>
-    r.replaceAll(spawnChar, "0").replaceAll("W", "0").replaceAll("F", "0")
-  );
-
-  // wallGrid NACH cleanup bauen
-  wallGrid = level.walls.map(rowStr => [...rowStr].map(c => c === "1"));
-  spawnGunChestsFromP(level);
-
-
-  // Debug-Walls pro Level
-  renderDebugWalls(level);
-
-  renderTile8Sprites(level);
-
-  // Player setzen
-  px = spawn.tx * TILE + (TILE - player.clientWidth) / 2;
-  py = spawn.ty * TILE + (TILE - player.clientHeight) / 2;
-  player.style.transform = `translate(${px}px, ${py}px)`;
-  // Boss nur wenn Level es aktiviert
-spawnBossFromLevel(currentLevel);
-
-  update._lastTime = null; // wichtig nach loadLevel
-
-  // Enemies spawnen
-  for (const s of wolfSpawns) spawnEnemy("wolf", s.tx, s.ty);
-  for (const s of batSpawns)  spawnEnemy("bat", s.tx, s.ty);
-
-  // NEU: Kühe spawnen (Deko, keine Hitbox)
-  for (const s of cowSpawns)  spawnCow(s.tx, s.ty, cowCfg);
-
-  SAFE_UNTIL = performance.now() + 1200;
-
-  // Trigger am Spawn
-const { tx: spawnTx, ty: spawnTy } = getPlayerTilePos();
-
-if (typeof currentLevel.checkTriggers === "function") {
-  currentLevel.checkTriggers(spawnTx, spawnTy, {
-    level: currentLevel,
-    showTempMessage,
-    playerEl: player,
-    gameEl: game,
-    facing
-  });
-}
-
-update._lastTx = spawnTx;
-update._lastTy = spawnTy;
-
-if (typeof currentLevel.onLoad === "function") {
-  currentLevel.onLoad({
-    level: currentLevel,
-    showTempMessage,
-    playerEl: player,
-    gameEl: game
-  });
-}
-}
-
-
-
-/* =========================
-   GAME LOOP
-   ========================= */
-function update(now = performance.now()) {
-  if (!gameStarted || !currentLevel) return;
-
-  // dt (Sekunden) berechnen
-  if (update._lastTime == null) update._lastTime = now;
-  let dt = (now - update._lastTime) / 1000;
-  update._lastTime = now;
-
-  // dt begrenzen (Tab-Wechsel / Lags)
-  if (dt > 0.05) dt = 0.05;
-
-  if (currentLevel?.flags?.carrying) player.classList.add("carrying");
-  else player.classList.remove("carrying");
-
-  // =========================
-  // MOVEMENT (nur wenn nicht gelocked)
-  // =========================
-  if (!PLAYER_LOCKED) {
-    let vx = 0, vy = 0;
-    if (keys.right) vx += SPEED * dt;
-    if (keys.left)  vx -= SPEED * dt;
-    if (keys.down)  vy += SPEED * dt;
-    if (keys.up)    vy -= SPEED * dt;
-
-    // diagonal normalisieren
-    const len = Math.hypot(vx, vy);
-    if (len > 0) {
-      const max = SPEED * dt;
-      vx = (vx / len) * max;
-      vy = (vy / len) * max;
+    if (phase === 1) {
+      msg(ctx.showTempMessage, "Muh...Bin bereit, aber maschine kaputt",{lockPlayer: true});
+      phase = 2;
+      resetFuseSequence();
+      resetPendingPickup();
+      return;
     }
 
     const hitOX = (player.clientWidth - PLAYER_HIT.w) / 2;
@@ -1530,76 +1407,12 @@ function update(now = performance.now()) {
     }
 player.style.animation = "";
 
-// Facing + Animation + letzte horizontale Richtung
-if (vx > 0) {
-  facing = "right";
-  facingX = "right";
-  setWalkClass(player, "right");   // OBERE Reihe
-}
-else if (vx < 0) {
-  facing = "left";
-  facingX = "left";
-  setWalkClass(player, "left");    // UNTERE Reihe
-}
-else if (vy < 0) {
-  facing = "up";
-
-  // Erst UP setzen (Animation)
-  player.classList.remove("walk-up","walk-down");
-  player.classList.add("walk-up");
-
-  // Und horizontale Reihe beibehalten
-  player.classList.remove("walk-left","walk-right");
-  player.classList.add(facingX === "left" ? "walk-left" : "walk-right");
-}
-else if (vy > 0) {
-  facing = "down";
-
-  player.classList.remove("walk-up","walk-down");
-  player.classList.add("walk-down");
-
-  player.classList.remove("walk-left","walk-right");
-  player.classList.add(facingX === "left" ? "walk-left" : "walk-right");
-}
-
-else {
-  // Idle: keine Animation, aber letzte horizontale Reihe behalten
-  player.classList.remove("walk-up", "walk-down");
-
-  if (facingX === "left") {
-    player.classList.remove("walk-right");
-    player.classList.add("walk-left");   // setzt y=-128px (linke Reihe)
-  } else {
-    player.classList.remove("walk-left");
-    player.classList.add("walk-right");  // setzt y=0 (rechte Reihe)
-  }
-
-  // Animation stoppen + auf Frame 1
-  player.style.animation = "none";
-  player.style.backgroundPositionX = "0px";
-}
-
-
-player.style.transform = `translate(${px}px, ${py}px)`;
-
-  }
-
-  // =========================
-  // Tile / Trigger / Levelwechsel (IMMER prüfen)
-  // =========================
-  const { tx: ptx, ty: pty } = getPlayerTilePos();
-
-  if (update._lastTx !== ptx || update._lastTy !== pty) {
-    update._lastTx = ptx;
-    update._lastTy = pty;
-    if (typeof currentLevel.checkTriggers === "function") {
-      currentLevel.checkTriggers(ptx, pty, {
-  level: currentLevel,
-  showTempMessage,
-  playerEl: player,
-  gameEl: game,
-  facing
-});
+    if (phase === 3) {
+      msg(ctx.showTempMessage, "Muh.. bin hungrig vom warten",{lockPlayer: true});
+      phase = 4;
+      itemHeld = null;
+      resetPendingPickup();
+      return;
     }
   }
 
@@ -1624,29 +1437,25 @@ player.style.transform = `translate(${px}px, ${py}px)`;
     return;
   }
 
-  if (tileHere === "S" && window.LEVEL5 && currentLevel.id === "level4") {
-  loadLevel(window.LEVEL5);
-  requestAnimationFrame(update);
-  return;
-}
+      if (itemHeld === "hay") {
+        msg(ctx.showTempMessage, "Das sieht lecker aus .......", { lockPlayer: true });
 
-  // =========================
-  // Enemies bewegen + Collision (IMMER laufen lassen)
-  // =========================
-  for (const e of enemies) updateEnemy(e);
+        setTimeout(() => {
+        msg(
+         ctx.showTempMessage,
+        "Nun ist alles bereit, aktiviere das System",
+        { lockPlayer: true }
+         );
 
-  updateBoss(dt);
-updateBossFireballs(dt);
+        phase = 5;
+        itemHeld = null;
+        resetPendingPickup();
+        resetSysSequence();
+        }, 2000); // kleine Pause zwischen den Texten
 
-  updateBullets(dt);
-
-  if (performance.now() > SAFE_UNTIL) {
-    const p = getPlayerHitRect();
-    for (const e of enemies) {
-      if (rectsOverlap(p, getEnemyHitRect(e))) {
-        restartGame();
-        return;
+      return;
       }
+
     }
   }
 

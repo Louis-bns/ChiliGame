@@ -337,20 +337,33 @@ body {
 }
 
 .arrow-popup {
-  position: absolute;
-  width: 160px;            /* Größe anpassen */
-  height: 160px;
+  position: relative;
+  
+  width: 200px;            /* Größe anpassen */
+  height: 200px;
   pointer-events: none;
-  z-index: 1000;
+  z-index: 500;
   image-rendering: pixelated;
-  animation: arrowHint 5s ease-out foarwards;
+  animation: arrowHint 7s ease-out forwards;
 }
 
 @keyframes arrowHint {
-  0%   { transform: translateY(0) scale(0.9); opacity: 0; }
-  15%  { transform: translateY(-6px) scale(1); opacity: 1; }
-  85%  { transform: translateY(-10px) scale(1); opacity: 1; }
-  100% { transform: translateY(-18px) scale(1); opacity: 0; }
+  0% {
+    transform: translate(-110px, -130px) scale(0.9);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(-110px, -136px) scale(1);
+    opacity: 1;
+  }
+  85% {
+    transform: translate(-110px, -140px) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-110px, -148px) scale(1);
+    opacity: 0;
+  }
 }
 /* X = sichtbarer Block (Tür/Barriere) */
 .tile-x {
