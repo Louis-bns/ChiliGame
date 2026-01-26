@@ -106,11 +106,9 @@
  
     _spentTriggers: new Set(),
  
-flags: {
-  uUnlocked: false,     // U bleibt solid bis N nach Phase6 triggert
+    flags: {  uUnlocked: false,     // U bleibt solid bis N nach Phase6 triggert
   hackCollected: false  // damit Hack nur einmal eingesammelt wird
-},
-
+ },
  
     getTile(tx, ty) {
       if (tx < 0 || ty < 0 || tx >= this.cols || ty >= this.rows) return "1";
@@ -147,37 +145,17 @@ if (phase >= 6 && t === "N") {
  
  
   if (ctx?.showTempMessage) {
-    msg(ctx.showTempMessage, "Sammle das Hack ein");
+    msg(ctx.showTempMessage, "you can't pass without some ground beef");
   }
   return;
 }
-<<<<<<< HEAD
-
-// N nach der Schwarzblende: neue Message + U freischalten
-if (phase >= 6 && t === "N") {
-  this._spentTriggers.add(key);
-
- 
-
-  if (ctx?.showTempMessage) {
-    msg(ctx.showTempMessage, "Collect the ground beef");
-  }
-  return;
-}
-    },
-
-    interactions: {
-      "F": (ctx) => msg(ctx.showTempMessage, "damaged"),
-
-=======
     },
  
     interactions: {
-      "F": (ctx) => msg(ctx.showTempMessage, "Förderband kaputt"),
+      "F": (ctx) => msg(ctx.showTempMessage, "damaged"),
  
->>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
       "M": (ctx) => {
-        if (phase === 1) return msg(ctx.showTempMessage, "The machine appears to be demaged ...");
+        if (phase === 1) return msg(ctx.showTempMessage, "The machine appears to be demaged  ...");
         if (phase === 2) return msg(ctx.showTempMessage, "Something is wrong with the fuse boxes.");
         if (phase === 3) return msg(ctx.showTempMessage, "Repaired and ready");
         if (phase === 4 || phase === 5) return msg(ctx.showTempMessage, "Repaired and ready");
@@ -223,20 +201,15 @@ if (phase >= 6 && t === "N") {
             resetSysSequence();
             return;
           }
-          msg(ctx.showTempMessage, "Container initialized");
+          msg(ctx.showTempMessage, "Container empty");
           sysStep = 3;
  
           // NEU: Schwarzblende + Phase6 + Kuh-Sprite swap
           triggerPhase6Transition(ctx);
           return;
         }
-<<<<<<< HEAD
-
-        msg(ctx.showTempMessage, "A Computer");
-=======
  
-        msg(ctx.showTempMessage, "Ein Computer");
->>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
+        msg(ctx.showTempMessage, "A Computer");
       },
  
       // Container (H) - NEU: ab Phase 6 "voll mit hack"
@@ -259,50 +232,19 @@ if (phase >= 6 && t === "N") {
     if (typeof window.showItemPopup === "function") {
       window.showItemPopup("assets/Hack.png");
     }
-<<<<<<< HEAD
-
-=======
  
->>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
     // Liste2
     if (typeof window.setListStep === "function") {
       window.setListStep(2);
     } else if (typeof setListStep === "function") {
       setListStep(2);
     }
-<<<<<<< HEAD
-
+ 
     return msg(ctx.showTempMessage, "Ground beef collected");
   }
-
+ 
   return msg(ctx.showTempMessage, "full of ground beef");
 },
-
-      "I": (ctx) => handleItemInteract(ctx, "I"),
-      "2": (ctx) => handleItemInteract(ctx, "2"),
-      "3": (ctx) => handleItemInteract(ctx, "3"),
-
-      "4": (ctx) => handleFuseInteract(ctx, "4"),
-      "5": (ctx) => handleFuseInteract(ctx, "5"),
-      "6": (ctx) => handleFuseInteract(ctx, "6"),
-
-      "k": (ctx) => handleCowInteract(ctx),
-      "K": (ctx) => handleCowInteract(ctx),
-
-      "8": (ctx) => {
-        if (phase >= 6) return;
-        if (phase === 1) msg(ctx.showTempMessage, "you can't pass without some ground beef");
-      }
-    }
-  };
-
-=======
- 
-    return msg(ctx.showTempMessage, "Hack eingesammelt");
-  }
- 
-  return msg(ctx.showTempMessage, "voll mit hack");
-},
  
       "I": (ctx) => handleItemInteract(ctx, "I"),
       "2": (ctx) => handleItemInteract(ctx, "2"),
@@ -317,12 +259,11 @@ if (phase >= 6 && t === "N") {
  
       "8": (ctx) => {
         if (phase >= 6) return;
-        if (phase === 1) msg(ctx.showTempMessage, "ohne hack nicht weiter");
+        if (phase === 1) msg(ctx.showTempMessage, "You can't pass without some ground beef");
       }
     }
   };
  
->>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
   /* =========================================================
      PHASEN-LOGIK
      ========================================================= */
@@ -492,36 +433,15 @@ if (phase >= 6 && t === "N") {
     if (phase >= 6) return;
  
     if (phase === 1) {
-      msg(ctx.showTempMessage, "Ein Sicherungskasten....");
-      return;
-    }
-<<<<<<< HEAD
-  }
-  return false;
-}
-      // kurz schwarz lassen, dann wieder aufblenden
-      setTimeout(() => {
-        ov.style.opacity = "0";
-      }, 250);
-    }, 720);
-  }
-
-  function handleFuseInteract(ctx, tile) {
-    if (phase >= 6) return;
-
-    if (phase === 1) {
       msg(ctx.showTempMessage, "A fuse box....");
       return;
     }
-
-=======
  
->>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
     if (phase === 2) {
       const steps = [
         { expected: "4", text: "Resistance repaired", lockPlayer: true },
         { expected: "5", text: "Lines checked", lockPlayer: true },
-        { expected: "6", text: "Fuse fixed", lockPlayer: true }
+        { expected: "6", text: "Fuses fixed", lockPlayer: true }
       ];
  
       const current = steps[fuseStep];
@@ -533,356 +453,41 @@ if (phase >= 6 && t === "N") {
       }
  
       msg(ctx.showTempMessage, current.text, 300, { lockPlayer: true });
-<<<<<<< HEAD
-
-/* =========================
-   BOSS: SPAWN / CLEAR
-   ========================= */
-function clearBoss() {
-  if (boss?.el) boss.el.remove();
-  boss = null;
-
-  for (const f of bossFireballs) f.el.remove();
-  bossFireballs.length = 0;
-}
-
-function getBossCfg(level) {
-  const cfg = level?.boss || {};
-  return {
-    enabled: cfg.enabled === true,
-    tx: typeof cfg.tx === "number" ? cfg.tx : 22,
-    ty: typeof cfg.ty === "number" ? cfg.ty : 22,
-    scale: typeof cfg.scale === "number" ? cfg.scale : 3,
-    speed: typeof cfg.speed === "number" ? cfg.speed : 210, // px/s
-    turnMinMs: typeof cfg.turnMinMs === "number" ? cfg.turnMinMs : 600,
-    turnMaxMs: typeof cfg.turnMaxMs === "number" ? cfg.turnMaxMs : 1600,
-    shotMinMs: typeof cfg.shotMinMs === "number" ? cfg.shotMinMs : 900,
-    shotMaxMs: typeof cfg.shotMaxMs === "number" ? cfg.shotMaxMs : 2600
-  };
-}
-
-function spawnBossFromLevel(level) {
-  clearBoss();
-
-  const cfg = getBossCfg(level);
-  if (!cfg.enabled) return;
-
-  const el = document.getElementById("bossTpl").cloneNode(false);
-  el.id = "boss";
-  el.style.display = "block";
-  game.appendChild(el);
-
-  // initial HP
-  window.BOSS_HP = 20;
-
-  // Position: tile-centered
-  const x = cfg.tx * TILE + (TILE - 64 * cfg.scale) / 2;
-  const y = cfg.ty * TILE + (TILE - 64 * cfg.scale) / 2;
-
-  boss = {
-    el,
-    x, y,
-    vx: 0, vy: 0,
-    dirX: 1, dirY: 0,
-    scale: cfg.scale,
-    baseSpeed: cfg.speed,
-    speed: cfg.speed,
-    nextTurnAt: performance.now() + 200,
-    nextShotAt: performance.now() + 600,
-    turnMinMs: cfg.turnMinMs,
-    turnMaxMs: cfg.turnMaxMs,
-    shotMinMs: cfg.shotMinMs,
-    shotMaxMs: cfg.shotMaxMs,
-  };
-
-    // HP-Bar DOM
-  const hpWrap = document.createElement("div");
-  hpWrap.className = "boss-hp-wrap";
-
-  const hpFill = document.createElement("div");
-  hpFill.className = "boss-hp-fill";
-
-  hpWrap.appendChild(hpFill);
-  el.appendChild(hpWrap);
-
-  boss._hpFill = hpFill;
-  boss._hpMax = 20;
-  updateBossHpBar();
-
-
-  setBossDir(1, 0);
-  applyBossTransform();
-}
-
-function updateBossHpBar() {
-  if (!boss || !boss._hpFill) return;
-
-  const hp = (typeof window.BOSS_HP === "number") ? window.BOSS_HP : 20;
-  const max = boss._hpMax || 20;
-
-  const pct = Math.max(0, Math.min(1, hp / max));
-  boss._hpFill.style.width = (pct * 100) + "%";
-
-  // optional: Farbwechsel je nach HP
-  if (pct > 0.5) boss._hpFill.style.background = "#2cff3a";
-  else if (pct > 0.25) boss._hpFill.style.background = "#ffd400";
-  else boss._hpFill.style.background = "#ff2a2a";
-}
-
-
-function applyBossTransform() {
-  if (!boss) return;
-  boss.el.style.transformOrigin = "top left";
-  boss.el.style.transform = `translate(${boss.x}px, ${boss.y}px) scale(${boss.scale})`;
-}
-
-function setBossDir(dx, dy) {
-  if (!boss) return;
-  boss.dirX = dx;
-  boss.dirY = dy;
-
-  // Sprite-Reihe wählen: links/rechts
-  boss.el.classList.remove("walk-left", "walk-right", "walk-up", "walk-down");
-
-  if (dx < 0) boss.el.classList.add("walk-left");
-  else if (dx > 0) boss.el.classList.add("walk-right");
-  else {
-    // Wenn nur up/down: behalte last horizontale Richtung, default right
-    if (boss.el.classList.contains("walk-left")) boss.el.classList.add("walk-left");
-    else boss.el.classList.add("walk-right");
-    boss.el.classList.add(dy < 0 ? "walk-up" : "walk-down");
-  }
-
-  // Velocity (random walk)
-  boss.vx = dx * boss.speed;
-  boss.vy = dy * boss.speed;
-}
-
-function bossHitRectAt(x, y) {
-  const s = boss?.scale ?? 1;
-  return {
-    x: x + BOSS_HIT_BASE.ox * s,
-    y: y + BOSS_HIT_BASE.oy * s,
-    w: BOSS_HIT_BASE.w * s,
-    h: BOSS_HIT_BASE.h * s
-  };
-}
-
-function chooseRandomBossDir() {
-  // 4 Richtungen (grid-like). Du kannst hier leicht auf 8 Richtungen erweitern.
-  const dirs = [
-    { dx: 1, dy: 0 },
-    { dx: -1, dy: 0 },
-    { dx: 0, dy: 1 },
-    { dx: 0, dy: -1 },
-  ];
-  return dirs[(Math.random() * dirs.length) | 0];
-}
-
-/* =========================
-   BOSS: UPDATE + FIRE
-   ========================= */
-function updateBoss(dt) {
-  if (!boss) return;
-
-  // Speed-Phase: ab 10 HP verdoppeln
-  const wantedSpeed = (window.BOSS_HP <= 10) ? (boss.baseSpeed * 2) : boss.baseSpeed;
-  if (boss.speed !== wantedSpeed) {
-    boss.speed = wantedSpeed;
-    boss.vx = boss.dirX * boss.speed;
-    boss.vy = boss.dirY * boss.speed;
-  }
-
-  const now = performance.now();
-
-  // Richtungswechsel random
-  if (now >= boss.nextTurnAt) {
-    const d = chooseRandomBossDir();
-    setBossDir(d.dx, d.dy);
-    boss.nextTurnAt = now + (boss.turnMinMs + Math.random() * (boss.turnMaxMs - boss.turnMinMs));
-  }
-
-  // Move mit Wall-Collision (Boss-Hitbox)
-  const tryMove = (nx, ny) => !rectIntersectsWall(
-    bossHitRectAt(nx, ny).x,
-    bossHitRectAt(nx, ny).y,
-    bossHitRectAt(nx, ny).w,
-    bossHitRectAt(nx, ny).h
-  );
-
-  let nx = boss.x + boss.vx * dt;
-  let ny = boss.y + boss.vy * dt;
-
-  // X
-  if (boss.vx !== 0) {
-    if (tryMove(nx, boss.y)) boss.x = nx;
-    else {
-      // Bounce: Richtung invertieren
-      setBossDir(-boss.dirX, 0);
-    }
-  }
-
-  // Y
-  if (boss.vy !== 0) {
-    if (tryMove(boss.x, ny)) boss.y = ny;
-    else {
-      setBossDir(0, -boss.dirY);
-    }
-  }
-
-  applyBossTransform();
-
-  // Player-Kollision => Tod
-  const p = getPlayerHitRect();
-  const br = bossHitRectAt(boss.x, boss.y);
-  if (rectsOverlap(p, br)) {
-    restartGame();
-    return;
-  }
+ 
       fuseStep++;
-
+ 
       if (fuseStep >= steps.length) {
         setTimeout(() => {
           msg(ctx.showTempMessage, "Machine lights up");
         }, 600);
-
+ 
         phase = 3;
         resetFuseSequence();
       }
-
+ 
       return;
     }
   }
-
+ 
   function handleItemInteract(ctx, tile) {
     if (phase >= 6) return;
-
+ 
     if (phase === 1 || phase === 2 || phase === 3) {
       if (tile === "I") return msg(ctx.showTempMessage, "Rubber boots?!");
       if (tile === "2") return msg(ctx.showTempMessage, "Hay?!");
       if (tile === "3") return msg(ctx.showTempMessage, "Carrots?!");
       return;
     }
-
+ 
     if (phase === 5) {
       return msg(ctx.showTempMessage, "Empty");
     }
-
-    if (phase === 4) {
-      const candidate = tileToItem(tile);
-
-      if (itemHeld) {
-        msg(ctx.showTempMessage, "Your bag is full");
-        resetPendingPickup();
-        return;
-      }
-  // Schießen random
-  if (now >= boss.nextShotAt) {
-    bossShootRandomFireball();
-    boss.nextShotAt = now + (boss.shotMinMs + Math.random() * (boss.shotMaxMs - boss.shotMinMs));
-  }
-}
-
-function bossShootRandomFireball() {
-  if (!boss) return;
-
-  // Startpunkt: Boss-Mitte
-  const s = boss.scale;
-  const cx = boss.x + (64 * s) / 2 - 6;
-  const cy = boss.y + (64 * s) / 2 - 6;
-
-  // Random Richtung (8 Wege)
-  const dirs = [
-    { dx: 1, dy: 0 }, { dx: -1, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: -1 },
-    { dx: 1, dy: 1 }, { dx: 1, dy: -1 }, { dx: -1, dy: 1 }, { dx: -1, dy: -1 }
-  ];
-  const d = dirs[(Math.random() * dirs.length) | 0];
-  const len = Math.hypot(d.dx, d.dy) || 1;
-  const dx = d.dx / len;
-  const dy = d.dy / len;
-
-  const el = document.createElement("div");
-  el.className = "boss-fireball";
-  game.appendChild(el);
-
-  const fb = {
-    el,
-    x: cx,
-    y: cy,
-    vx: dx * BOSS_FIREBALL_SPEED,
-    vy: dy * BOSS_FIREBALL_SPEED,
-    born: performance.now()
-  };
-
-  bossFireballs.push(fb);
-  el.style.transform = `translate(${fb.x}px, ${fb.y}px)`;
-}
-
-function updateBossFireballs(dt) {
-  if (!bossFireballs.length) return;
-
-  const p = getPlayerHitRect();
-
-  for (let i = bossFireballs.length - 1; i >= 0; i--) {
-    const f = bossFireballs[i];
-
-    if (performance.now() - f.born > BOSS_FIREBALL_LIFETIME) {
-      f.el.remove();
-      bossFireballs.splice(i, 1);
-      continue;
-    }
-
-    f.x += f.vx * dt;
-    f.y += f.vy * dt;
-
-    // Wall collision (12x12)
-    if (rectIntersectsWall(f.x, f.y, 12, 12)) {
-      f.el.remove();
-      bossFireballs.splice(i, 1);
-      continue;
-    }
-
-    // Player collision
-    const fr = { x: f.x, y: f.y, w: 12, h: 12 };
-    if (rectsOverlap(fr, p)) {
-      restartGame();
-=======
- 
-      fuseStep++;
- 
-      if (fuseStep >= steps.length) {
-        setTimeout(() => {
-          msg(ctx.showTempMessage, "Maschine leuchtet");
-        }, 600);
- 
-        phase = 3;
-        resetFuseSequence();
-      }
- 
->>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
-      return;
-    }
-  }
- 
-  function handleItemInteract(ctx, tile) {
-    if (phase >= 6) return;
- 
-    if (phase === 1 || phase === 2 || phase === 3) {
-      if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel?!");
-      if (tile === "2") return msg(ctx.showTempMessage, "Heu?!");
-      if (tile === "3") return msg(ctx.showTempMessage, "Karotten?!");
-      return;
-    }
- 
-    if (phase === 5) {
-      return msg(ctx.showTempMessage, "leer");
-    }
  
     if (phase === 4) {
       const candidate = tileToItem(tile);
  
       if (itemHeld) {
-        msg(ctx.showTempMessage, "Tasche voll");
+        msg(ctx.showTempMessage, "You can only carry one thing");
         resetPendingPickup();
         return;
       }
@@ -890,9 +495,9 @@ function updateBossFireballs(dt) {
       if (!itemHeld) {
         if (pendingPickup !== tile) {
           pendingPickup = tile;
-          if (tile === "I") return msg(ctx.showTempMessage, "Rubber boots ?!...take along?",{lockPlayer: true});
-          if (tile === "2") return msg(ctx.showTempMessage, "Hay?!...take along?",{lockPlayer: true});
-          if (tile === "3") return msg(ctx.showTempMessage, "Carrots?!...take laong?",{lockPlayer: true});
+          if (tile === "I") return msg(ctx.showTempMessage, "Rubber boots?!...take them along?",{lockPlayer: true});
+          if (tile === "2") return msg(ctx.showTempMessage, "Hay?!...take them along?",{lockPlayer: true});
+          if (tile === "3") return msg(ctx.showTempMessage, "Carrots?!...take them along?",{lockPlayer: true});
           return;
         } else {
           itemHeld = candidate;
@@ -904,17 +509,10 @@ function updateBossFireballs(dt) {
             if (tile === "2") window.showItemPopup("assets/heu.png");
             if (tile === "3") window.showItemPopup("assets/Karotten.png");
           }
-<<<<<<< HEAD
-
-          if (tile === "I") return msg(ctx.showTempMessage, "Rubber boots taken");
-          if (tile === "2") return msg(ctx.showTempMessage, "Hayeu taken");
-          if (tile === "3") return msg(ctx.showTempMessage, "Carrots taken");
-=======
  
-          if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel genommen");
-          if (tile === "2") return msg(ctx.showTempMessage, "Heu genommen");
-          if (tile === "3") return msg(ctx.showTempMessage, "Karotten genommen");
->>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
+          if (tile === "I") return msg(ctx.showTempMessage, "Taken rubber boots");
+          if (tile === "2") return msg(ctx.showTempMessage, "Taken hay");
+          if (tile === "3") return msg(ctx.showTempMessage, "Taken carrots");
           return;
         }
       }
@@ -925,32 +523,16 @@ function updateBossFireballs(dt) {
     if (phase >= 6) return;
  
     if (phase === 1) {
-      msg(ctx.showTempMessage, "Moo...I am ready, but the machine isn't working",{lockPlayer: true});
+      msg(ctx.showTempMessage, "Moo... I'm ready, but the machine's broken.",{lockPlayer: true});
       phase = 2;
       resetFuseSequence();
       resetPendingPickup();
       return;
     }
-<<<<<<< HEAD
-
+ 
     if (phase === 2) {
       msg(ctx.showTempMessage, "Machine needs to be repaired");
       return;
-    const hitOX = (player.clientWidth - PLAYER_HIT.w) / 2;
-    const hitOY = (player.clientHeight - PLAYER_HIT.h) / 2;
-
-    const canMoveTo = (nx, ny) =>
-      !rectIntersectsWall(nx + hitOX, ny + hitOY, PLAYER_HIT.w, PLAYER_HIT.h);
-
-    if (vx) {
-      const nx = px + vx;
-      if (canMoveTo(nx, py)) px = nx;
-=======
- 
-    if (phase === 2) {
-      msg(ctx.showTempMessage, "Maschine muss repariert werden");
-      return;
->>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
     }
  
     if (phase === 3) {
@@ -960,74 +542,30 @@ function updateBossFireballs(dt) {
       resetPendingPickup();
       return;
     }
-<<<<<<< HEAD
-  }
-
+ 
     if (phase === 4) {
       if (!itemHeld) {
         msg(ctx.showTempMessage, "Moo... I'm hungry from waiting.");
         return;
       }
-  const tileHere = getTileAt(currentLevel, ptx, pty);
-
-  if (tileHere === "Z" && window.LEVEL2 && currentLevel.id === "level1") {
-    loadLevel(window.LEVEL2);
-    requestAnimationFrame(update);
-    return;
-  }
-
-      if (itemHeld === "boots") {
-        msg(ctx.showTempMessage, "Moo..what should I do with that?");
-=======
- 
-    if (phase === 4) {
-      if (!itemHeld) {
-        msg(ctx.showTempMessage, "Muh.. bin hungrig vom warten");
-        return;
-      }
  
       if (itemHeld === "boots") {
-        msg(ctx.showTempMessage, "Was soll ich damit ");
->>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
+        msg(ctx.showTempMessage, "What should I do with that?");
         itemHeld = null;
         resetPendingPickup();
         return;
       }
-<<<<<<< HEAD
-  if (tileHere === "Y" && window.LEVEL3 && currentLevel.id === "level2") {
-    loadLevel(window.LEVEL3);
-    requestAnimationFrame(update);
-    return;
-  }
-
-      if (itemHeld === "carrots") {
-        msg(ctx.showTempMessage, "Moo... I don't like those");
-=======
  
       if (itemHeld === "carrots") {
-        msg(ctx.showTempMessage, "Ne mag ich nicht");
->>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
+        msg(ctx.showTempMessage, "No, I don't like those");
         itemHeld = null;
         resetPendingPickup();
         return;
       }
-<<<<<<< HEAD
-  // Level 3 -> Level 4 (du nutzt jetzt "Q")
-  if (tileHere === "Q" && window.LEVEL4 && currentLevel.id === "level3") {
-    loadLevel(window.LEVEL4);
-    requestAnimationFrame(update);
-    return;
-  }
-
-      if (itemHeld === "hay") {
-        msg(ctx.showTempMessage, "Moo...that looks delicious", { lockPlayer: true });
-
-=======
  
       if (itemHeld === "hay") {
-        msg(ctx.showTempMessage, "Das sieht lecker aus .......", { lockPlayer: true });
+        msg(ctx.showTempMessage, "That looks delicious .......", { lockPlayer: true });
  
->>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
         setTimeout(() => {
         msg(
          ctx.showTempMessage,
@@ -1047,22 +585,9 @@ function updateBossFireballs(dt) {
     }
  
     if (phase === 5) {
-      msg(ctx.showTempMessage, "Computer starten das System");
+      msg(ctx.showTempMessage, "Computers start the system");
       return;
     }
   }
-<<<<<<< HEAD
-
-    if (phase === 5) {
-      msg(ctx.showTempMessage, "The computers start the system");
-      return;
-    }
-  }
-})();
-  // WICHTIG: Loop immer weiter laufen lassen
-  requestAnimationFrame(update);
-}
-=======
 })();
  
->>>>>>> dfbc466d93957d84f00889176197f400a2a876f1
