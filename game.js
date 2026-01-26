@@ -1,3 +1,5 @@
+console.log("GAME.JS LOADED", Date.now());
+
 const game = document.getElementById("game");
 const player = document.getElementById("player");
 const startScreen = document.getElementById("startscreen");
