@@ -75,13 +75,13 @@
       "000000000100001000000000000000010001100000000",
       "000000000100001000000000000000010001000000000",
       "001111111100001111111000011111110001111111100",
-      "0010000001k00000000011111100AAA0000000CCC0100",
-      "0010000001k00000000000000000AAA0000000CCC0100",
-      "0010000001k00000000000000000AAA0000000CCC0100",
-      "001000K001k0000000000000000000000000000000100",
-      "0011111111k0000000000000000000000000000000100",
-      "001kkkkkkkk0000000001000001000000000000000100",
-      "001000000000001111111000001111110001111111100",
+      "0010000001kk0000000011111100AAA0000000CCC0100",
+      "0010000001kk0000000000000000AAA0000000CCC0100",
+      "0010000001kk0000000000000000AAA0000000CCC0100",
+      "001000K001kk000000000000000000000000000000100",
+      "0011111111kk000000000000000000000000000000100",
+      "001kkkkkkkkk000000001000001000000000000000100",
+      "001kkkkkkkk0001111111000001111110001111111100",
       "001000000000001000000000000000000000BBB000100",
       "001000000000001000000000000000000000BBB000100",
       "001000000000001000000000000000000000BBB000100",
@@ -106,11 +106,9 @@
  
     _spentTriggers: new Set(),
  
-flags: {
-  uUnlocked: false,     // U bleibt solid bis N nach Phase6 triggert
+    flags: {  uUnlocked: false,     // U bleibt solid bis N nach Phase6 triggert
   hackCollected: false  // damit Hack nur einmal eingesammelt wird
-},
-
+ },
  
     getTile(tx, ty) {
       if (tx < 0 || ty < 0 || tx >= this.cols || ty >= this.rows) return "1";
@@ -129,38 +127,39 @@ flags: {
   return false;
 },
  
-    checkTriggers(playerTx, playerTy, ctx) {
-      const t = this.getTile(playerTx, playerTy);
-      const key = `${t}:${playerTx},${playerTy}`;
-      if (this._spentTriggers.has(key)) return;
- 
-      if ([1, 2, 3, 4, 5].includes(phase) && t === "N") {
-  this._spentTriggers.add(key);
-  if (ctx?.showTempMessage) msg(ctx.showTempMessage, "ohne hack nicht weiter");
-  return;
-}
- 
-// N nach der Schwarzblende: neue Message + U freischalten
-if (phase >= 6 && t === "N") {
-  this._spentTriggers.add(key);
- 
- 
- 
-  if (ctx?.showTempMessage) {
-    msg(ctx.showTempMessage, "Sammle das Hack ein");
+  checkTriggers(playerTx, playerTy, ctx) {
+  const t = this.getTile(playerTx, playerTy);
+
+  // ✅ N soll nach H (Hack/ground beef) GAR NICHT mehr triggern
+  if (t === "N" && this.flags?.hackCollected) return;
+
+  const key = `${t}:${playerTx},${playerTy}`;
+  if (this._spentTriggers.has(key)) return;
+
+  if ([1, 2, 3, 4, 5].includes(phase) && t === "N") {
+    this._spentTriggers.add(key);
+    if (ctx?.showTempMessage) msg(ctx.showTempMessage, "ohne hack nicht weiter");
+    return;
   }
-  return;
-}
-    },
+
+  // N nach der Schwarzblende: neue Message + U freischalten
+  if (phase >= 6 && t === "N") {
+    this._spentTriggers.add(key);
+    if (ctx?.showTempMessage) {
+      msg(ctx.showTempMessage, "you can't pass without some ground beef");
+    }
+    return;
+    }
+  },
  
     interactions: {
-      "F": (ctx) => msg(ctx.showTempMessage, "Förderband kaputt"),
+      "F": (ctx) => msg(ctx.showTempMessage, "damaged"),
  
       "M": (ctx) => {
-        if (phase === 1) return msg(ctx.showTempMessage, "Maschie ist wohl kaputt ...");
-        if (phase === 2) return msg(ctx.showTempMessage, "Irgendwas stimmt mit den Sicherungen nicht.");
-        if (phase === 3) return msg(ctx.showTempMessage, "Repariert und bereit");
-        if (phase === 4 || phase === 5) return msg(ctx.showTempMessage, "Repariert und bereit");
+        if (phase === 1) return msg(ctx.showTempMessage, "The machine appears to be demaged  ...");
+        if (phase === 2) return msg(ctx.showTempMessage, "Something is wrong with the fuse boxes.");
+        if (phase === 3) return msg(ctx.showTempMessage, "Repaired and ready");
+        if (phase === 4 || phase === 5) return msg(ctx.showTempMessage, "Repaired and ready");
         return;
       },
  
@@ -168,30 +167,30 @@ if (phase >= 6 && t === "N") {
         if (phase >= 6) return;
         if (phase === 5) {
           if (sysStep !== 0) {
-            msg(ctx.showTempMessage, "Error 404---Abbruch");
+            msg(ctx.showTempMessage, "Error 404---Interruption");
             resetSysSequence();
             return;
           }
-          msg(ctx.showTempMessage, "Maschine aktiviert");
+          msg(ctx.showTempMessage, "Machine activated");
           sysStep = 1;
           return;
         }
-        msg(ctx.showTempMessage, "Ein Computer");
+        msg(ctx.showTempMessage, "A Computer");
       },
  
       "B": (ctx) => {
         if (phase >= 6) return;
         if (phase === 5) {
           if (sysStep !== 1) {
-            msg(ctx.showTempMessage, "Error 404---Abbruch");
+            msg(ctx.showTempMessage, "Error 404---Interruption");
             resetSysSequence();
             return;
           }
-          msg(ctx.showTempMessage, "Kuh integriert");
+          msg(ctx.showTempMessage, "Cow integrated");
           sysStep = 2;
           return;
         }
-        msg(ctx.showTempMessage, "Ein Computer");
+        msg(ctx.showTempMessage, "A Computer");
       },
  
       "C": (ctx) => {
@@ -199,11 +198,11 @@ if (phase >= 6 && t === "N") {
  
         if (phase === 5) {
           if (sysStep !== 2) {
-            msg(ctx.showTempMessage, "Error 404---Abbruch");
+            msg(ctx.showTempMessage, "Error 404---Interruption");
             resetSysSequence();
             return;
           }
-          msg(ctx.showTempMessage, "Container initialisiert");
+          msg(ctx.showTempMessage, "Container connected");
           sysStep = 3;
  
           // NEU: Schwarzblende + Phase6 + Kuh-Sprite swap
@@ -211,13 +210,13 @@ if (phase >= 6 && t === "N") {
           return;
         }
  
-        msg(ctx.showTempMessage, "Ein Computer");
+        msg(ctx.showTempMessage, "A Computer");
       },
  
       // Container (H) - NEU: ab Phase 6 "voll mit hack"
       "H": (ctx) => {
   if (phase < 6) {
-    return msg(ctx.showTempMessage, "Container leer");
+    return msg(ctx.showTempMessage, "Container empty");
   }
  
   const L = ctx.level || window.LEVEL2;
@@ -242,10 +241,10 @@ if (phase >= 6 && t === "N") {
       setListStep(2);
     }
  
-    return msg(ctx.showTempMessage, "Hack eingesammelt");
+    return msg(ctx.showTempMessage, "Ground beef collected");
   }
  
-  return msg(ctx.showTempMessage, "voll mit hack");
+  return msg(ctx.showTempMessage, "full of ground beef");
 },
  
       "I": (ctx) => handleItemInteract(ctx, "I"),
@@ -261,7 +260,7 @@ if (phase >= 6 && t === "N") {
  
       "8": (ctx) => {
         if (phase >= 6) return;
-        if (phase === 1) msg(ctx.showTempMessage, "ohne hack nicht weiter");
+        if (phase === 1) msg(ctx.showTempMessage, "You can't pass without some ground beef");
       }
     }
   };
@@ -435,21 +434,21 @@ if (phase >= 6 && t === "N") {
     if (phase >= 6) return;
  
     if (phase === 1) {
-      msg(ctx.showTempMessage, "Ein Sicherungskasten....");
+      msg(ctx.showTempMessage, "A fuse box....");
       return;
     }
  
     if (phase === 2) {
       const steps = [
-        { expected: "4", text: "Widerstand repariert", lockPlayer: true },
-        { expected: "5", text: "Leitungen überprüft", lockPlayer: true },
-        { expected: "6", text: "Sicherung repariert", lockPlayer: true }
+        { expected: "4", text: "Resistance repaired", lockPlayer: true },
+        { expected: "5", text: "Lines checked", lockPlayer: true },
+        { expected: "6", text: "Fuses fixed", lockPlayer: true }
       ];
  
       const current = steps[fuseStep];
  
       if (tile !== current.expected) {
-        msg(ctx.showTempMessage, "Kurzschluss", {lockPlayer: true});
+        msg(ctx.showTempMessage, "Short circuit", {lockPlayer: true});
         resetFuseSequence();
         return;
       }
@@ -460,7 +459,7 @@ if (phase >= 6 && t === "N") {
  
       if (fuseStep >= steps.length) {
         setTimeout(() => {
-          msg(ctx.showTempMessage, "Maschine leuchtet");
+          msg(ctx.showTempMessage, "Machine lights up");
         }, 600);
  
         phase = 3;
@@ -475,21 +474,21 @@ if (phase >= 6 && t === "N") {
     if (phase >= 6) return;
  
     if (phase === 1 || phase === 2 || phase === 3) {
-      if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel?!");
-      if (tile === "2") return msg(ctx.showTempMessage, "Heu?!");
-      if (tile === "3") return msg(ctx.showTempMessage, "Karotten?!");
+      if (tile === "I") return msg(ctx.showTempMessage, "Rubber boots?!");
+      if (tile === "2") return msg(ctx.showTempMessage, "Hay?!");
+      if (tile === "3") return msg(ctx.showTempMessage, "Carrots?!");
       return;
     }
  
     if (phase === 5) {
-      return msg(ctx.showTempMessage, "leer");
+      return msg(ctx.showTempMessage, "Empty");
     }
  
     if (phase === 4) {
       const candidate = tileToItem(tile);
  
       if (itemHeld) {
-        msg(ctx.showTempMessage, "Tasche voll");
+        msg(ctx.showTempMessage, "You can only carry one thing");
         resetPendingPickup();
         return;
       }
@@ -497,9 +496,9 @@ if (phase >= 6 && t === "N") {
       if (!itemHeld) {
         if (pendingPickup !== tile) {
           pendingPickup = tile;
-          if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel ?!...mitnehmen?",{lockPlayer: true});
-          if (tile === "2") return msg(ctx.showTempMessage, "Heu?!...mitnehmen",{lockPlayer: true});
-          if (tile === "3") return msg(ctx.showTempMessage, "Karotten?!...mitnehmen",{lockPlayer: true});
+          if (tile === "I") return msg(ctx.showTempMessage, "Rubber boots?!...take them along?",{lockPlayer: true});
+          if (tile === "2") return msg(ctx.showTempMessage, "Hay?!...take them along?",{lockPlayer: true});
+          if (tile === "3") return msg(ctx.showTempMessage, "Carrots?!...take them along?",{lockPlayer: true});
           return;
         } else {
           itemHeld = candidate;
@@ -512,9 +511,9 @@ if (phase >= 6 && t === "N") {
             if (tile === "3") window.showItemPopup("assets/Karotten.png");
           }
  
-          if (tile === "I") return msg(ctx.showTempMessage, "Gummistiefel genommen");
-          if (tile === "2") return msg(ctx.showTempMessage, "Heu genommen");
-          if (tile === "3") return msg(ctx.showTempMessage, "Karotten genommen");
+          if (tile === "I") return msg(ctx.showTempMessage, "Taken rubber boots");
+          if (tile === "2") return msg(ctx.showTempMessage, "Taken hay");
+          if (tile === "3") return msg(ctx.showTempMessage, "Taken carrots");
           return;
         }
       }
@@ -525,7 +524,7 @@ if (phase >= 6 && t === "N") {
     if (phase >= 6) return;
  
     if (phase === 1) {
-      msg(ctx.showTempMessage, "Muh...Bin bereit, aber maschine kaputt",{lockPlayer: true});
+      msg(ctx.showTempMessage, "Moo... I'm ready, but the machine's broken.",{lockPlayer: true});
       phase = 2;
       resetFuseSequence();
       resetPendingPickup();
@@ -533,12 +532,12 @@ if (phase >= 6 && t === "N") {
     }
  
     if (phase === 2) {
-      msg(ctx.showTempMessage, "Maschine muss repariert werden");
+      msg(ctx.showTempMessage, "Machine needs to be repaired");
       return;
     }
  
     if (phase === 3) {
-      msg(ctx.showTempMessage, "Muh.. bin hungrig vom warten",{lockPlayer: true});
+      msg(ctx.showTempMessage, "Moo... I'm hungry from waiting.",{lockPlayer: true});
       phase = 4;
       itemHeld = null;
       resetPendingPickup();
@@ -547,31 +546,31 @@ if (phase >= 6 && t === "N") {
  
     if (phase === 4) {
       if (!itemHeld) {
-        msg(ctx.showTempMessage, "Muh.. bin hungrig vom warten");
+        msg(ctx.showTempMessage, "Moo... I'm hungry from waiting.");
         return;
       }
  
       if (itemHeld === "boots") {
-        msg(ctx.showTempMessage, "Was soll ich damit ");
+        msg(ctx.showTempMessage, "What should I do with that?");
         itemHeld = null;
         resetPendingPickup();
         return;
       }
  
       if (itemHeld === "carrots") {
-        msg(ctx.showTempMessage, "Ne mag ich nicht");
+        msg(ctx.showTempMessage, "No, I don't like those");
         itemHeld = null;
         resetPendingPickup();
         return;
       }
  
       if (itemHeld === "hay") {
-        msg(ctx.showTempMessage, "Das sieht lecker aus .......", { lockPlayer: true });
+        msg(ctx.showTempMessage, "That looks delicious .......", { lockPlayer: true });
  
         setTimeout(() => {
         msg(
          ctx.showTempMessage,
-        "Nun ist alles bereit, aktiviere das System",
+        "Everything is ready now, activate the system.",
         { lockPlayer: true }
          );
  
@@ -587,7 +586,7 @@ if (phase >= 6 && t === "N") {
     }
  
     if (phase === 5) {
-      msg(ctx.showTempMessage, "Computer starten das System");
+      msg(ctx.showTempMessage, "Computers start the system");
       return;
     }
   }

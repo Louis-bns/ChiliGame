@@ -123,7 +123,7 @@
       this._spentTriggers.add(key);
 
       if (t === "3") {
-        showTempMessage("'Grandson! Please come the kitchen...'", 4000, { typewriter: true, charDelay: 26 });
+        showTempMessage("'Grandson! Please come in the kitchen...'", 4000, { typewriter: true, charDelay: 26 });
       }
 
       if (t === "4") {
