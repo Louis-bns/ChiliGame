@@ -299,7 +299,7 @@ function unlockBossExit(level) {
     level.walls = level.walls.map(r => r.replaceAll("V", "0"));
   }
 
-  showTempMessage("Ein Mechanismus klickt... Der Weg ist frei!", 1600, {
+  showTempMessage("You have found the last Ingredient 🌶️!\n\nThe Door now seems open! ", 3500, {
     typewriter: true, charDelay: 18
   });
 }
@@ -329,7 +329,7 @@ function pickupGunFromChest(level, tx, ty) {
 
   HAS_GUN = true;
   player.classList.add("gun");
-  showTempMessage("Maiskolben-Pistole aufgenommen!", 1500, {
+  showTempMessage("You found Corn!!!\n\n But wait...\nWhat's that?!\nA Gun!?!?", 3500, {
     typewriter: true, charDelay: 18
   });
 
@@ -378,8 +378,14 @@ function updateBullets(dt) {
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
 
+    // ✅ FIX: schützt gegen undefined / "holes" im Array
+    if (!b || typeof b.born !== "number") {
+      bullets.splice(i, 1);
+      continue;
+    }
+
     if (performance.now() - b.born > BULLET_LIFETIME) {
-      b.el.remove();
+      b.el?.remove();
       bullets.splice(i, 1);
       continue;
     }
@@ -388,7 +394,7 @@ function updateBullets(dt) {
     b.y += b.vy * dt;
 
     if (rectIntersectsWall(b.x, b.y, 10, 10)) {
-      b.el.remove();
+      b.el?.remove();
       bullets.splice(i, 1);
       continue;
     }
@@ -402,7 +408,7 @@ function updateBullets(dt) {
 
         showTempMessage(`Treffer! Boss HP: ${window.BOSS_HP}`, 700);
 
-        b.el.remove();
+        b.el?.remove();
         bullets.splice(i, 1);
 
         if (window.BOSS_HP <= 0) {
@@ -419,9 +425,10 @@ function updateBullets(dt) {
       }
     }
 
-    b.el.style.transform = `translate(${b.x}px, ${b.y}px)`;
+    b.el && (b.el.style.transform = `translate(${b.x}px, ${b.y}px)`);
   }
 }
+
 
 function getPlayerHitRect() {
   const hitOX = (player.clientWidth - PLAYER_HIT.w) / 2;

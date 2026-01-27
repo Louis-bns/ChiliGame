@@ -135,65 +135,6 @@ isSolid(tx, ty) {
       if (this._spentTriggers.has(key)) return;
 
       this._spentTriggers.add(key);
-
-      if (t === "3") {
-        showTempMessage("Komm in die Küche, die Oma brauch dich mal!", 3000, { typewriter: true, charDelay: 26 });
-      }
-
-      if (t === "4") {
-        showTempMessage(
-          "Interagiere mit Hilfe von Leertaste mit deiner Umgebung, probiere gleich mal mit Oma zu reden.",
-          3000, { typewriter: true, charDelay: 26 }
-        );
-      }
-
-      if (t === "7") {
-        if (!this.flags.talkedToOma) {
-          showTempMessage("Rede erst mit Oma!", 3000, { typewriter: true, charDelay: 26 });
-        }
-      }
-
-      if (t === "A") {
-        if (!this.flags.tookKey) {
-          showTempMessage("vergiss die schlüssel nicht!", 3000, { typewriter: true, charDelay: 26 });
-        }
-      }
-    },
-
-    interactions: {
-      "5": ({ level, showTempMessage }) => {
-        if (!level.flags.talkedToOma) {
-          level.flags.talkedToOma = true;
-          showTempMessage("Die Chili Zutaten fehlen, geh los", 2500, { typewriter: true, charDelay: 26 });
-        } else {
-          showTempMessage("Oma: Viel Erfolg da draußen!", 2000, { typewriter: true, charDelay: 26 });
-        }
-      },
-
-      "9": ({ level, showTempMessage }) => {
-        if (!level.flags.tookKey) {
-          level.flags.tookKey = true;
-          showTempMessage("Schlüssel gefunden", 2500, { typewriter: true, charDelay: 26 });
-        } else {
-          showTempMessage("Schublade ist leer", 2000, { typewriter: true, charDelay: 26 });
-        }
-      },
-
-      "6": ({ level, showTempMessage }) => {
-        if (!level.flags.talkedToOma) {
-          showTempMessage("Rede erst mit Oma!", 2000, { typewriter: true, charDelay: 26 });
-        } else {
-          showTempMessage("Du kannst jetzt hier durch.", 1500);
-        }
-      },
-
-      "B": ({ level, showTempMessage }) => {
-        if (!level.flags.tookKey) {
-          showTempMessage("Vergiss den Schlüssel aus der Schublade nicht", 2000, { typewriter: true, charDelay: 26 });
-        } else {
-          showTempMessage("Du kannst jetzt hier durch.", 1500);
-        }
-      },
     },
   };
 })();
