@@ -75,13 +75,13 @@
       "000000000100001000000000000000010001100000000",
       "000000000100001000000000000000010001000000000",
       "001111111100001111111000011111110001111111100",
-      "0010000001k00000000011111100AAA0000000CCC0100",
-      "0010000001k00000000000000000AAA0000000CCC0100",
-      "0010000001k00000000000000000AAA0000000CCC0100",
-      "001000K001k0000000000000000000000000000000100",
-      "0011111111k0000000000000000000000000000000100",
-      "001kkkkkkkk0000000001000001000000000000000100",
-      "001000000000001111111000001111110001111111100",
+      "0010000001kk0000000011111100AAA0000000CCC0100",
+      "0010000001kk0000000000000000AAA0000000CCC0100",
+      "0010000001kk0000000000000000AAA0000000CCC0100",
+      "001000K001kk000000000000000000000000000000100",
+      "0011111111kk000000000000000000000000000000100",
+      "001kkkkkkkkk000000001000001000000000000000100",
+      "001kkkkkkkk0001111111000001111110001111111100",
       "001000000000001000000000000000000000BBB000100",
       "001000000000001000000000000000000000BBB000100",
       "001000000000001000000000000000000000BBB000100",
@@ -127,29 +127,30 @@
   return false;
 },
  
-    checkTriggers(playerTx, playerTy, ctx) {
-      const t = this.getTile(playerTx, playerTy);
-      const key = `${t}:${playerTx},${playerTy}`;
-      if (this._spentTriggers.has(key)) return;
- 
-      if ([1, 2, 3, 4, 5].includes(phase) && t === "N") {
-  this._spentTriggers.add(key);
-  if (ctx?.showTempMessage) msg(ctx.showTempMessage, "ohne hack nicht weiter");
-  return;
-}
- 
-// N nach der Schwarzblende: neue Message + U freischalten
-if (phase >= 6 && t === "N") {
-  this._spentTriggers.add(key);
- 
- 
- 
-  if (ctx?.showTempMessage) {
-    msg(ctx.showTempMessage, "you can't pass without some ground beef");
+  checkTriggers(playerTx, playerTy, ctx) {
+  const t = this.getTile(playerTx, playerTy);
+
+  // ✅ N soll nach H (Hack/ground beef) GAR NICHT mehr triggern
+  if (t === "N" && this.flags?.hackCollected) return;
+
+  const key = `${t}:${playerTx},${playerTy}`;
+  if (this._spentTriggers.has(key)) return;
+
+  if ([1, 2, 3, 4, 5].includes(phase) && t === "N") {
+    this._spentTriggers.add(key);
+    if (ctx?.showTempMessage) msg(ctx.showTempMessage, "ohne hack nicht weiter");
+    return;
   }
-  return;
-}
-    },
+
+  // N nach der Schwarzblende: neue Message + U freischalten
+  if (phase >= 6 && t === "N") {
+    this._spentTriggers.add(key);
+    if (ctx?.showTempMessage) {
+      msg(ctx.showTempMessage, "you can't pass without some ground beef");
+    }
+    return;
+    }
+  },
  
     interactions: {
       "F": (ctx) => msg(ctx.showTempMessage, "damaged"),
@@ -201,7 +202,7 @@ if (phase >= 6 && t === "N") {
             resetSysSequence();
             return;
           }
-          msg(ctx.showTempMessage, "Container empty");
+          msg(ctx.showTempMessage, "Container connected");
           sysStep = 3;
  
           // NEU: Schwarzblende + Phase6 + Kuh-Sprite swap
@@ -569,7 +570,7 @@ if (phase >= 6 && t === "N") {
         setTimeout(() => {
         msg(
          ctx.showTempMessage,
-        "Everything is now ready, activate the system.",
+        "Everything is ready now, activate the system.",
         { lockPlayer: true }
          );
  
