@@ -1487,6 +1487,12 @@ function update(now = performance.now()) {
     return;
   }
 
+  if (tileHere === "S" && window.LEVEL6 && currentLevel.id === "level5") {
+    loadLevel(window.LEVEL6);
+    requestAnimationFrame(update);
+    return;
+  }
+
   // Enemies + Boss + Bullets
   for (const e of enemies) updateEnemy(e);
 
