@@ -15,7 +15,7 @@
       solved: false
     },
 
-    renderWalls: true,
+    renderWalls: false,
 
     // Targets werden beim Laden aus walls herausgescannt, damit sie sichtbar bleiben,
     // auch wenn später ein Block drauf steht.
