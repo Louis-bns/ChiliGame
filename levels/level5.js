@@ -7,7 +7,7 @@
     background: "assets/Level5.png",
     spawn: { tx: 18, ty: 16 },
 
-    renderWalls: true,
+    renderWalls: false,
     enemies: { bat: true, wolf: true },
     enemyConfig: {
       wolf: { mode: "patrolX", distance: 10, speed: 1.4, scale: 4 },
