@@ -81,7 +81,7 @@
       ctx.showTempMessage(
         "Use the SPACEBAR to move the boxes to the correct spaces.\nBe careful! Sometimes there's no going back!\n\nIf you get stuck, press 'R'",
         2000,
-        { typewriter: true, x: "50%", y: "50%", center: true }
+        { typewriter: true, x: "50%", y: "50%", center: true,lockPlayer: true  }
       );
     },
 

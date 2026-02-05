@@ -57,7 +57,7 @@ const DEFAULT_SCALES = { wolf: 4, bat: 1 };
 
 // Enemy Hitboxen (fair; ggf. anpassen)
 const BAT_HIT_BASE = { w: 70, h: 70, ox: 13, oy: 28 }; // Bat: Element 96x128
-const WOLF_HIT_BASE = { w: 56, h: 56, ox: 4, oy: 4 };  // Wolf: Element 64x64
+const WOLF_HIT_BASE = { w: 44, h: 44, ox: 4, oy: 4 };  // Wolf: Element 64x64
 
 // Spawn Schutz
 let SAFE_UNTIL = 0;
