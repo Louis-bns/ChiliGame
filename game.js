@@ -419,7 +419,7 @@ function updateBullets(dt) {
           boss = null;
 
           unequipGun();
-          showTempMessage("Boss besiegt!", 1500, { typewriter: true, charDelay: 18 });
+          showTempMessage("Boss killed!", 1500, { typewriter: true, charDelay: 18 });
         }
         continue;
       }
