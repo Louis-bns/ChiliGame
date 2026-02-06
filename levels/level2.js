@@ -40,7 +40,7 @@
  
   // Größenanpassung wie bei cowConfig
   scale: 1,     // z.B. 1.2 = größer
-  ox: 1100,        // Pixel-Offset X
+  ox: 700,        // Pixel-Offset X
   oy: -10,        // Pixel-Offset Y
  
   behindPlayer: true, // true => hinter Player, false => davor

@@ -37,7 +37,7 @@
   }
 },
 
-renderWalls:true,
+renderWalls:false,
     enemies: {
       bat: false,
       wolf: false,
