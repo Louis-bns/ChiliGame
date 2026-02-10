@@ -138,7 +138,7 @@
 
   if ([1, 2, 3, 4, 5].includes(phase) && t === "N") {
     this._spentTriggers.add(key);
-    if (ctx?.showTempMessage) msg(ctx.showTempMessage, "ohne hack nicht weiter");
+    if (ctx?.showTempMessage) msg(ctx.showTempMessage, "you can't pass without some ground beef");
     return;
   }
 
