@@ -54,13 +54,13 @@
       "100000000000000000000000400000000000000000001",
       "100000000000000000000000400000000000000000001",
       "111111111111111111111111111111111111111111111",
-      "111111111111111111111111111111111111111111111"
+      "111111111111111111111111111111111111111111111",
     ],
 
-    // ✅ wie Level1: Flags vorhanden
+    // Flags vorhanden
     flags: {
       talkedToOma: false,
-      ingredientsShown: false
+      ingredientsShown: false,
     },
 
     getTile(tx, ty) {
@@ -73,7 +73,7 @@
     isSolid(tx, ty) {
       const t = this.getTile(tx, ty);
       if (t === "1") return true;
-      return false; // ✅ "5" ist begehbar wie in Level1
+      return false; // "5" ist begehbar wie in Level1
     },
 
     onLoad(ctx) {
@@ -85,19 +85,38 @@
     },
 
     interactions: {
-      "5": ({ level, showTempMessage }) => {
-        // ✅ robust, falls flags aus irgendeinem Grund fehlen
+      5: ({ level, showTempMessage }) => {
         level.flags = level.flags || {};
 
         if (!level.flags.talkedToOma) {
           level.flags.talkedToOma = true;
 
-          showTempMessage("'Thanks'", 8000, { typewriter: true, charDelay: 26, lockPlayer: true });
+          showTempMessage(
+            "'Thanks for playing the Game!\n It will restart soon!'",
+            4000,
+            {
+              typewriter: true,
+              charDelay: 26,
+              lockPlayer: true,
+            }
+          );
 
+          // Game nach dem Dialog neu starten
+          setTimeout(() => {
+            if (typeof restartGame === "function") {
+              restartGame();
+            } else {
+              // Fallback
+              location.reload();
+            }
+          }, 4200); // leicht nach Message-Ende
         } else {
-          showTempMessage("'I'm so forgetful'", 3000, { typewriter: true, charDelay: 26 });
+          showTempMessage("'I'm so forgetful'", 3000, {
+            typewriter: true,
+            charDelay: 26,
+          });
         }
-      }
-    }
+      },
+    },
   };
 })();
