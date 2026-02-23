@@ -9,35 +9,34 @@
     spawn: { tx: 18, ty: 16 },
 
     boss: {
-  enabled: true,
-  tx: 30,
-  ty: 20,
-  scale: 3,
-  speed: 210,
-  turnMinMs: 600,
-  turnMaxMs: 1600,
-  shotMinMs: 900,
-  shotMaxMs: 2600
-},
-
+      enabled: true,
+      tx: 30,
+      ty: 20,
+      scale: 3,
+      speed: 210,
+      turnMinMs: 600,
+      turnMaxMs: 1600,
+      shotMinMs: 900,
+      shotMaxMs: 2600,
+    },
 
     enemyConfig: {
-  wolf: {
-    mode: "patrolX",     // Wolf läuft links<->rechts
-    distance: 10,        // in TILES (hier 12 Tiles weit)
-    speed: 1.4,          // px pro Frame
-    scale: 4             // Wolf-Größe
-  },
-  bat: {
-    mode: "infinity",    // Bat fliegt Schleife
-    a: 800,              // horizontaler Radius (Pixel)
-    b: 600,              // vertikaler Radius (Pixel)
-    speed: 0.07,         // Kurven-Speed
-    scale: 0.5           // Bat-Größe
-  }
-},
+      wolf: {
+        mode: "patrolX", // Wolf läuft links<->rechts
+        distance: 10, // in TILES (hier 12 Tiles weit)
+        speed: 1.4, // px pro Frame
+        scale: 4, // Wolf-Größe
+      },
+      bat: {
+        mode: "infinity", // Bat fliegt Schleife
+        a: 800, // horizontaler Radius (Pixel)
+        b: 600, // vertikaler Radius (Pixel)
+        speed: 0.07, // Kurven-Speed
+        scale: 0.5, // Bat-Größe
+      },
+    },
 
-renderWalls:false,
+    renderWalls: false,
     enemies: {
       bat: false,
       wolf: false,
@@ -88,14 +87,14 @@ renderWalls:false,
       "100000000000000000000000000000000000000000001",
       "100000000000000000000000000000000000000000001",
       "100000000000000000000000000000000000000000001",
-      "111111111111111111111111111111111111111111111"
+      "111111111111111111111111111111111111111111111",
     ],
 
     _spentTriggers: new Set(),
 
     flags: {
       talkedToOma: false,
-      tookKey: false
+      tookKey: false,
     },
 
     getTile(tx, ty) {
@@ -105,7 +104,7 @@ renderWalls:false,
 
       let t = row[tx] ?? "1";
 
-      // Spawn-Marker fuer Gegner sind immer frei
+      // Spawn-Marker für Gegner sind immer frei
       if (t === "W" || t === "F") return "0";
 
       if (t === "7" && this.flags.talkedToOma === true) return "0";
@@ -114,18 +113,18 @@ renderWalls:false,
       return t;
     },
 
-isSolid(tx, ty) {
-  const t = this.getTile(tx, ty);
+    isSolid(tx, ty) {
+      const t = this.getTile(tx, ty);
 
-  if (t === "1") return true;
-  if (t === "6") return this.flags.talkedToOma !== true;
-  if (t === "B") return this.flags.tookKey !== true;
+      if (t === "1") return true;
+      if (t === "6") return this.flags.talkedToOma !== true;
+      if (t === "B") return this.flags.tookKey !== true;
 
-  // NEU: unsichtbare Wand blockiert, bis Boss-Chest gelootet wurde
-  if (t === "V" && this.flags?.bossLooted !== true) return true;
+      // unsichtbare Wand blockiert, bis Boss-Chest gelootet wurde
+      if (t === "V" && this.flags?.bossLooted !== true) return true;
 
-  return false;
-},
+      return false;
+    },
 
     checkTriggers(playerTx, playerTy) {
       const t = this.getTile(playerTx, playerTy);

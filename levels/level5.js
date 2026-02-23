@@ -8,10 +8,10 @@
     spawn: { tx: 18, ty: 16 },
 
     renderWalls: false,
-    enemies: { bat: true, wolf: true },
+    enemies: { bat: false, wolf: false },
     enemyConfig: {
       wolf: { mode: "patrolX", distance: 10, speed: 1.4, scale: 4 },
-      bat: { mode: "infinity", a: 8000, b: 5000, speed: 0.02, scale: 0.9 }
+      bat: { mode: "infinity", a: 8000, b: 5000, speed: 0.02, scale: 0.9 },
     },
 
     walls: [
@@ -58,8 +58,7 @@
       "10000100010000000000000001000000000S000000001",
       "100001020100000000000000011111111111000000000",
       "100001000100000000000000000000000000000000000",
-      "100001000100000000000000000000000000000000000"
+      "100001000100000000000000000000000000000000000",
     ],
   };
 })();
-

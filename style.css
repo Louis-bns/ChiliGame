@@ -37,9 +37,15 @@ body {
 }
 
 @keyframes blink {
-  0%   { opacity: 1; }
-  50%  { opacity: 0; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 #startscreen.startscreen-hide {
@@ -67,8 +73,7 @@ body {
   position: absolute;
   top: 0;
 
-  /* links neben das Spielfeld schieben:
-     520px Liste + 24px gap -> -544px */
+  /* links neben das Spielfeld schieben */
   left: calc(-520px - 24px);
 
   width: 520px;
@@ -95,17 +100,16 @@ body {
 
 /* Game */
 #game {
-  position: absolute; /* <<< FIX: absolute statt absulute */
+  position: absolute;
   left: 0;
   top: 0;
 
   width: calc(var(--cols) * 32px);
   height: calc(var(--rows) * 32px);
 
-  /* WICHTIG: margin entfernen, sonst verschiebt er sich innerhalb wrapper */
   margin: 0;
 
-  background-image: url('assets/Intro lvl.png');
+  background-image: url("assets/Intro lvl.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -117,7 +121,7 @@ body {
 }
 
 #player.gun {
-  background-image: url("assets/KochGun.png"); /* <- dein neues Sheet */
+  background-image: url("assets/KochGun.png");
 }
 
 .corn-bullet {
@@ -125,13 +129,12 @@ body {
   width: 10px;
   height: 10px;
   image-rendering: pixelated;
-  background: #ffd400;         /* gelb */
-  border: 2px solid #111;      /* pixeliger Look */
+  background: #ffd400;
+  border: 2px solid #111;
   box-shadow: 2px 2px 0 #000;
   z-index: 999;
 }
 
-/* Player */
 #player {
   position: absolute;
   width: 96px;
@@ -139,28 +142,41 @@ body {
   z-index: 10;
   image-rendering: pixelated;
 
-  background-image: url('assets/Koch.png');
+  background-image: url("assets/Koch.png");
   background-repeat: no-repeat;
   background-size: 384px 256px;
   background-position: 0 0;
 }
 
 @keyframes walk {
-  from { background-position-x: 0; }
-  to   { background-position-x: -384px; }
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: -384px;
+  }
 }
 
-#player.walk-right { background-position-y: 0;      animation: walk 0.5s steps(4) infinite; }
-#player.walk-left  { background-position-y: -128px; animation: walk 0.5s steps(4) infinite; }
+#player.walk-right {
+  background-position-y: 0;
+  animation: walk 0.5s steps(4) infinite;
+}
+#player.walk-left {
+  background-position-y: -128px;
+  animation: walk 0.5s steps(4) infinite;
+}
 #player.walk-up,
 #player.walk-down {
   animation: walk 0.5s steps(4) infinite;
 }
 
 /* Templates verstecken */
-#batTpl, #wolfTpl { display: none; }
+#batTpl,
+#wolfTpl {
+  display: none;
+}
 
-/* Bat (mehrere Instanzen) */
+/* Bat */
 .bat {
   position: absolute;
   width: 96px;
@@ -168,21 +184,34 @@ body {
   z-index: 10;
   image-rendering: pixelated;
 
-  background-image: url('assets/Bat.png');
+  background-image: url("assets/Bat.png");
   background-repeat: no-repeat;
   background-size: 384px 256px;
   background-position: 0 0;
 }
 
-.bat.walk-right { background-position-y: 0;      animation: walk 0.7s steps(4) infinite; }
-.bat.walk-left  { background-position-y: -128px; animation: walk 0.7s steps(4) infinite; }
+.bat.walk-right {
+  background-position-y: 0;
+  animation: walk 0.7s steps(4) infinite;
+}
+.bat.walk-left {
+  background-position-y: -128px;
+  animation: walk 0.7s steps(4) infinite;
+}
 .bat.walk-up,
-.bat.walk-down  { background-position-y: 0;      animation: walk 0.7s steps(4) infinite; }
+.bat.walk-down {
+  background-position-y: 0;
+  animation: walk 0.7s steps(4) infinite;
+}
 
-/* Wolf (mehrere Instanzen) */
+/* Wolf */
 @keyframes wolf-walk {
-  from { background-position-x: 0; }
-  to   { background-position-x: -256px; }
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: -256px;
+  }
 }
 
 /* Wolf.png: 256x128, 2 Reihen, 4 Frames => Frame 64x64 */
@@ -193,7 +222,7 @@ body {
   z-index: 10;
   image-rendering: pixelated;
 
-  background-image: url('assets/Wolf.png');
+  background-image: url("assets/Wolf.png");
   background-repeat: no-repeat;
   background-size: 256px 128px;
   background-position: 0 0;
@@ -222,27 +251,46 @@ body {
 
   background-image: var(--cowSprite, url("assets/Cow.png"));
 
-  /* WICHTIG: wir zwingen das Sheet im Spiel auf 4x2 Frames (384x256) */
   background-size: var(--cowSheetW, 384px) var(--cowSheetH, 256px);
   background-position: 0 0;
 }
 
-/* 8 Frames: 4x2 */
 .cow.anim {
-  animation: cowAnim 3s steps(1) infinite ;
+  animation: cowAnim 3s steps(1) infinite;
 }
 
 @keyframes cowAnim {
-  0%    { background-position: 0 0; }
-  12.5% { background-position: calc(-1 * var(--cowFrameW, 96px)) 0; }
-  25%   { background-position: calc(-2 * var(--cowFrameW, 96px)) 0; }
-  37.5% { background-position: calc(-3 * var(--cowFrameW, 96px)) 0; }
+  0% {
+    background-position: 0 0;
+  }
+  12.5% {
+    background-position: calc(-1 * var(--cowFrameW, 96px)) 0;
+  }
+  25% {
+    background-position: calc(-2 * var(--cowFrameW, 96px)) 0;
+  }
+  37.5% {
+    background-position: calc(-3 * var(--cowFrameW, 96px)) 0;
+  }
 
-  50%   { background-position: 0 calc(-1 * var(--cowFrameH, 128px)); }
-  62.5% { background-position: calc(-1 * var(--cowFrameW, 96px)) calc(-1 * var(--cowFrameH, 128px)); }
-  75%   { background-position: calc(-2 * var(--cowFrameW, 96px)) calc(-1 * var(--cowFrameH, 128px)); }
-  87.5% { background-position: calc(-3 * var(--cowFrameW, 96px)) calc(-1 * var(--cowFrameH, 128px)); }
-  100%  { background-position: 0 0; }
+  50% {
+    background-position: 0 calc(-1 * var(--cowFrameH, 128px));
+  }
+  62.5% {
+    background-position: calc(-1 * var(--cowFrameW, 96px))
+      calc(-1 * var(--cowFrameH, 128px));
+  }
+  75% {
+    background-position: calc(-2 * var(--cowFrameW, 96px))
+      calc(-1 * var(--cowFrameH, 128px));
+  }
+  87.5% {
+    background-position: calc(-3 * var(--cowFrameW, 96px))
+      calc(-1 * var(--cowFrameH, 128px));
+  }
+  100% {
+    background-position: 0 0;
+  }
 }
 
 /* Granny Tile 8 */
@@ -261,8 +309,13 @@ body {
 }
 
 /* Debug walls */
-#tiles .tile { width: 32px; height: 32px; }
-#tiles .tile.wall { background: rgba(0, 140, 255, 0.35); }
+#tiles .tile {
+  width: 32px;
+  height: 32px;
+}
+#tiles .tile.wall {
+  background: rgba(0, 140, 255, 0.35);
+}
 
 .tile-push {
   position: absolute;
@@ -272,7 +325,7 @@ body {
   image-rendering: pixelated;
 
   background-repeat: no-repeat;
-  background-size: 32px 32px;   /* skaliert das ganze Bild auf 32x32 */
+  background-size: 32px 32px;
   background-position: center;
 
   transform: translate(-6px, -6px);
@@ -280,30 +333,44 @@ body {
   box-shadow: 6px 6px 0 #000;
 }
 
-
 .tile-target {
- position: absolute;
+  position: absolute;
   width: 32px;
   height: 32px;
 
   image-rendering: pixelated;
 
   background-repeat: no-repeat;
-  background-size: 32px 32px;   /* skaliert das ganze Bild auf 32x32 */
+  background-size: 32px 32px;
   background-position: center;
 
   transform: translate(-6px, -6px);
   border: 4px solid #111;
 }
 
-.tile-push-blue  { background-image: url("assets/BalueKiste.png"); }
-.tile-push-green { background-image: url("assets/GrüneKiste.png"); }
-.tile-push-red   { background-image: url("assets/RoteKiste.png"); }
+.tile-push-blue {
+  background-image: url("assets/BalueKiste.png");
+}
+.tile-push-green {
+  background-image: url("assets/GrüneKiste.png");
+}
+.tile-push-red {
+  background-image: url("assets/RoteKiste.png");
+}
 
 /* Targets */
-.tile-target-blue  { border-color: #091fe9; background-image: url("assets/Druckplatte.png"); }
-.tile-target-green { border-color: #1ce04d; background-image: url("assets/Druckplatte.png"); }
-.tile-target-red   { border-color: #f70d0d; background-image: url("assets/Druckplatte.png"); }
+.tile-target-blue {
+  border-color: #091fe9;
+  background-image: url("assets/Druckplatte.png");
+}
+.tile-target-green {
+  border-color: #1ce04d;
+  background-image: url("assets/Druckplatte.png");
+}
+.tile-target-red {
+  border-color: #f70d0d;
+  background-image: url("assets/Druckplatte.png");
+}
 
 .tile-push-locked {
   background: #929292;
@@ -338,8 +405,8 @@ body {
 
 .arrow-popup {
   position: relative;
-  
-  width: 200px;            /* Größe anpassen */
+
+  width: 200px;
   height: 200px;
   pointer-events: none;
   z-index: 500;
@@ -381,9 +448,8 @@ body {
   box-shadow: 4px 2px 0 #000;
 }
 
-/* Optional: wenn du ein Bild nutzen willst */
 .tile-x-sprite {
-  background-image: url("assets/XBlock.png"); /* dein PNG */
+  background-image: url("assets/XBlock.png");
 }
 
 /* Chest / Truhe */
@@ -399,7 +465,6 @@ body {
   background-size: 32px 32px;
 
   transform: translate(-6px, -6px) scale(2);
-
 }
 
 /* =========================
@@ -410,8 +475,12 @@ body {
    ========================= */
 
 @keyframes boss-walk {
-  from { background-position-x: 0; }
-  to   { background-position-x: -256px; }
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: -256px;
+  }
 }
 
 .boss {
@@ -425,7 +494,7 @@ body {
   background-repeat: no-repeat;
   background-size: 256px 128px;
   background-position: 0 0;
-  display: none; /* wird beim Spawn auf block gesetzt */
+  display: none;
 }
 
 .boss.walk-left {
@@ -438,10 +507,12 @@ body {
   animation: boss-walk 0.6s steps(4) infinite;
 }
 
-/* optional: hoch/runter nutzt einfach die letzte horizontale Richtung */
-.boss.walk-up  { animation: boss-walk 0.6s steps(4) infinite; }
-.boss.walk-down{ animation: boss-walk 0.6s steps(4) infinite; }
-
+.boss.walk-up {
+  animation: boss-walk 0.6s steps(4) infinite;
+}
+.boss.walk-down {
+  animation: boss-walk 0.6s steps(4) infinite;
+}
 
 /* =========================
    BOSS FIREBALL
@@ -463,9 +534,9 @@ body {
 .boss .boss-hp-wrap {
   position: absolute;
   left: 50%;
-  top: -14px;                 /* über dem Kopf */
+  top: -14px;
   transform: translateX(-50%);
-  width: 64px;                /* unskaliert, skaliert mit Boss */
+  width: 64px;
   height: 8px;
   border: 2px solid #111;
   background: #2b2b2b;
@@ -476,5 +547,5 @@ body {
 .boss .boss-hp-fill {
   height: 100%;
   width: 100%;
-  background: #2cff3a;        /* grün */
+  background: #2cff3a;
 }

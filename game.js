@@ -1,8 +1,6 @@
-// =========================
-// GAME.JS (MERGE-FIXED)
-// - entfernt die doppelte zweite Kopie (die den "Identifier ... already been declared" SyntaxError auslöst)
-// - behält alle gemergten Elemente aus deinem Post (Boss, Gun, Bullets, Truhen, Cows, Speechbubble, Triggers, Levelwechsel)
-// =========================
+/* =========================
+   GAME.JS
+   =========================*/
 
 const game = document.getElementById("game");
 const player = document.getElementById("player");
@@ -26,21 +24,21 @@ let TILE = 32;
 
 let HAS_GUN = false;
 const bullets = []; // { el, x, y, vx, vy, born }
-const BULLET_SPEED = 900;      // px/s
-const BULLET_LIFETIME = 1200;  // ms
-const SHOOT_COOLDOWN = 140;    // ms
+const BULLET_SPEED = 900; // px/s
+const BULLET_LIFETIME = 1200; // ms
+const SHOOT_COOLDOWN = 140; // ms
 let _lastShotAt = 0;
 
 // Truhen
 const gunChests = new Map(); // key "tx,ty" -> { el, tx, ty }
-let bossChest = null;        // { el, tx, ty }
+let bossChest = null; // { el, tx, ty }
 
 /* =========================
    BOSS STATE
    ========================= */
 let boss = null; // { el, x,y, vx,vy, dirX, dirY, speed, baseSpeed, scale, nextTurnAt, nextShotAt }
 const bossFireballs = []; // { el, x,y, vx,vy, born }
-const BOSS_FIREBALL_SPEED = 520;     // px/s
+const BOSS_FIREBALL_SPEED = 520; // px/s
 const BOSS_FIREBALL_LIFETIME = 2400; // ms
 const BOSS_HIT_BASE = { w: 54, h: 54, ox: 5, oy: 5 }; // Boss 64x64 -> fairer Hit
 
@@ -52,12 +50,12 @@ const SPEED = 240;
 // Player Hitbox
 const PLAYER_HIT = { w: 40, h: 60 };
 
-// Default scales (kannst du pro Level überschreiben)
+// Default scales
 const DEFAULT_SCALES = { wolf: 4, bat: 1 };
 
-// Enemy Hitboxen (fair; ggf. anpassen)
+// Enemy Hitboxen
 const BAT_HIT_BASE = { w: 70, h: 70, ox: 13, oy: 28 }; // Bat: Element 96x128
-const WOLF_HIT_BASE = { w: 44, h: 44, ox: 4, oy: 4 };  // Wolf: Element 64x64
+const WOLF_HIT_BASE = { w: 44, h: 44, ox: 4, oy: 4 }; // Wolf: Element 64x64
 
 // Spawn Schutz
 let SAFE_UNTIL = 0;
@@ -65,13 +63,14 @@ let SAFE_UNTIL = 0;
 /* =========================
    STATE
    ========================= */
-let px = 0, py = 0;
-let facing = "down"; // "left" | "right" | "up" | "down"
-let facingX = "right"; // merkt letzte horizontale Richtung
+let px = 0,
+  py = 0;
+let facing = "down";
+let facingX = "right";
 const keys = { left: false, right: false, up: false, down: false };
 
-const enemies = []; // {type, el, x,y, homeX,homeY, t, cfg, dir, startX, maxX}
-const cows = [];    // NEU: reine Deko (ohne Hitbox)
+const enemies = [];
+const cows = [];
 
 let PLAYER_LOCKED = false; // Locked bei Text
 
@@ -151,19 +150,19 @@ function showTempMessage(text, ms = 2000, opts = {}) {
     x = "50%",
     y = "50%",
     center = true,
-    lockPlayer = false
+    lockPlayer = false,
   } = opts;
 
-  // ✅ NEU: Wenn eine vorherige Message den Player gelockt hat, beim Überschreiben sauber unlocken
+  // Wenn eine vorherige Message den Player gelockt hat, beim Überschreiben sauber unlocken
   if (showTempMessage._locked && !lockPlayer) {
     PLAYER_LOCKED = false;
     showTempMessage._locked = false;
   }
 
-  // ✅ NEU: Lock-Status für diese Message merken
+  // Lock-Status für diese Message merken
   showTempMessage._locked = !!lockPlayer;
 
-  // 🔒 Lock setzen (wenn gewünscht)
+  // Lock setzen
   if (lockPlayer) {
     PLAYER_LOCKED = true;
   }
@@ -180,7 +179,7 @@ function showTempMessage(text, ms = 2000, opts = {}) {
     showTempMessage._typeTimer = null;
   }
 
-  // ✅ Unlock-Funktion: Unlock nur, wenn DIESE Message gelockt hat
+  // Unlock nur, wenn DIESE Message gelockt hat
   const unlock = () => {
     if (showTempMessage._locked && lockPlayer) {
       PLAYER_LOCKED = false;
@@ -255,7 +254,9 @@ function restartGame() {
 }
 
 function rectsOverlap(a, b) {
-  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  return (
+    a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
+  );
 }
 
 function getBossRect() {
@@ -268,13 +269,15 @@ function getBossRect() {
   return { x: b.left - g.left, y: b.top - g.top, w: b.width, h: b.height };
 }
 
-function keyXY(tx, ty) { return `${tx},${ty}`; }
+function keyXY(tx, ty) {
+  return `${tx},${ty}`;
+}
 
 function spawnChestAtTile(tx, ty, { z = 20, scale = 2, className = "" } = {}) {
   const el = document.createElement("div");
   el.className = `tile-chest ${className}`.trim();
-  el.style.left = (tx * TILE) + "px";
-  el.style.top  = (ty * TILE) + "px";
+  el.style.left = tx * TILE + "px";
+  el.style.top = ty * TILE + "px";
   el.style.zIndex = String(z);
   el.style.transform = `translate(-6px, -6px) scale(${scale})`;
 
@@ -296,23 +299,32 @@ function unlockBossExit(level) {
   level.flags.bossLooted = true;
 
   if (Array.isArray(level.walls)) {
-    level.walls = level.walls.map(r => r.replaceAll("V", "0"));
+    level.walls = level.walls.map((r) => r.replaceAll("V", "0"));
   }
 
-  showTempMessage("You have found the last Ingredient 🌶️!\n\nThe Door now seems open! ", 3500, {
-    typewriter: true, charDelay: 18
-  });
+  showTempMessage(
+    "You have found the last Ingredient 🌶️!\n\nThe Door now seems open! ",
+    3500,
+    {
+      typewriter: true,
+      charDelay: 18,
+    }
+  );
 }
 
 function spawnGunChestsFromP(level) {
   gunChests.clear();
-  document.querySelectorAll(".gun-chest").forEach(el => el.remove());
+  document.querySelectorAll(".gun-chest").forEach((el) => el.remove());
 
   for (let ty = 0; ty < level.rows; ty++) {
     const row = level.walls[ty];
     for (let tx = 0; tx < level.cols; tx++) {
       if (row[tx] === "P") {
-        const el = spawnChestAtTile(tx, ty, { className: "gun-chest", z: 6, scale: 2.6 });
+        const el = spawnChestAtTile(tx, ty, {
+          className: "gun-chest",
+          z: 6,
+          scale: 2.6,
+        });
         gunChests.set(keyXY(tx, ty), { el, tx, ty });
       }
     }
@@ -329,9 +341,14 @@ function pickupGunFromChest(level, tx, ty) {
 
   HAS_GUN = true;
   player.classList.add("gun");
-  showTempMessage("You found Corn!!!\n\n But wait...\nWhat's that?!\nA Gun!?!?", 3500, {
-    typewriter: true, charDelay: 18
-  });
+  showTempMessage(
+    "You found Corn!!!\n\n But wait...\nWhat's that?!\nA Gun!?!?",
+    3500,
+    {
+      typewriter: true,
+      charDelay: 18,
+    }
+  );
 
   const k = keyXY(tx, ty);
   const chest = gunChests.get(k);
@@ -352,7 +369,8 @@ function shootCorn() {
   let x = p.x + p.w / 2 - 5;
   let y = p.y + p.h / 2 - 5;
 
-  let dx = 0, dy = 0;
+  let dx = 0,
+    dy = 0;
   if (facing === "right") dx = 1;
   else if (facing === "left") dx = -1;
   else if (facing === "up") dy = -1;
@@ -365,7 +383,14 @@ function shootCorn() {
   el.className = "corn-bullet";
   game.appendChild(el);
 
-  const b = { el, x, y, vx: dx * BULLET_SPEED, vy: dy * BULLET_SPEED, born: now };
+  const b = {
+    el,
+    x,
+    y,
+    vx: dx * BULLET_SPEED,
+    vy: dy * BULLET_SPEED,
+    born: now,
+  };
   bullets.push(b);
   el.style.transform = `translate(${b.x}px, ${b.y}px)`;
 }
@@ -378,7 +403,7 @@ function updateBullets(dt) {
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
 
-    // ✅ FIX: schützt gegen undefined / "holes" im Array
+    // schutz gegen undefined / "holes" im Array
     if (!b || typeof b.born !== "number") {
       bullets.splice(i, 1);
       continue;
@@ -402,7 +427,8 @@ function updateBullets(dt) {
     if (bossRect) {
       const br = { x: b.x, y: b.y, w: 10, h: 10 };
       if (rectsOverlap(br, bossRect)) {
-        window.BOSS_HP = (typeof window.BOSS_HP === "number") ? window.BOSS_HP : 20;
+        window.BOSS_HP =
+          typeof window.BOSS_HP === "number" ? window.BOSS_HP : 20;
         window.BOSS_HP -= 1;
         updateBossHpBar();
 
@@ -419,7 +445,10 @@ function updateBullets(dt) {
           boss = null;
 
           unequipGun();
-          showTempMessage("Boss killed!", 1500, { typewriter: true, charDelay: 18 });
+          showTempMessage("Boss killed!", 1500, {
+            typewriter: true,
+            charDelay: 18,
+          });
         }
         continue;
       }
@@ -429,7 +458,6 @@ function updateBullets(dt) {
   }
 }
 
-
 function getPlayerHitRect() {
   const hitOX = (player.clientWidth - PLAYER_HIT.w) / 2;
   const hitOY = (player.clientHeight - PLAYER_HIT.h) / 2;
@@ -437,7 +465,7 @@ function getPlayerHitRect() {
 }
 
 function getEnemyHitRect(e) {
-  const hb = (e.type === "wolf") ? WOLF_HIT_BASE : BAT_HIT_BASE;
+  const hb = e.type === "wolf" ? WOLF_HIT_BASE : BAT_HIT_BASE;
   const s = e.cfg.scale;
 
   return { x: e.x + hb.ox * s, y: e.y + hb.oy * s, w: hb.w * s, h: hb.h * s };
@@ -484,8 +512,9 @@ function showKeyPopup() {
   const playerRect = player.getBoundingClientRect();
   const gameRect = game.getBoundingClientRect();
 
-  keyImg.style.left = (playerRect.left - gameRect.left) + (playerRect.width / 2) - 20 + "px";
-  keyImg.style.top  = (playerRect.top  - gameRect.top)  - 45 + "px";
+  keyImg.style.left =
+    playerRect.left - gameRect.left + playerRect.width / 2 - 20 + "px";
+  keyImg.style.top = playerRect.top - gameRect.top - 45 + "px";
 
   game.appendChild(keyImg);
   setTimeout(() => keyImg.remove(), 1200);
@@ -499,8 +528,9 @@ function showItemPopup(src, ms = 1200) {
   const playerRect = player.getBoundingClientRect();
   const gameRect = game.getBoundingClientRect();
 
-  img.style.left = (playerRect.left - gameRect.left) + (playerRect.width / 2) - 20 + "px";
-  img.style.top  = (playerRect.top  - gameRect.top)  - 45 + "px";
+  img.style.left =
+    playerRect.left - gameRect.left + playerRect.width / 2 - 20 + "px";
+  img.style.top = playerRect.top - gameRect.top - 45 + "px";
 
   game.appendChild(img);
   setTimeout(() => img.remove(), ms);
@@ -515,8 +545,9 @@ function showArrowsPopup(ms = 2200) {
   const playerRect = player.getBoundingClientRect();
   const gameRect = game.getBoundingClientRect();
 
-  img.style.left = (playerRect.left - gameRect.left) + (playerRect.width / 2) - 40 + "px";
-  img.style.top  = (playerRect.top  - gameRect.top)  - 80 + "px";
+  img.style.left =
+    playerRect.left - gameRect.left + playerRect.width / 2 - 40 + "px";
+  img.style.top = playerRect.top - gameRect.top - 80 + "px";
 
   game.appendChild(img);
   setTimeout(() => img.remove(), ms);
@@ -557,7 +588,7 @@ document.addEventListener("keydown", (e) => {
     return;
   }
 
-  // Interact auf "E"
+  // Interact auf "E" (Backup für Bugs)
   if (k === "e" && gameStarted) {
     e.preventDefault();
     handleInteract();
@@ -573,14 +604,23 @@ document.addEventListener("keydown", (e) => {
 
   switch (k) {
     case "arrowright":
-    case "d": keys.right = true; break;
+    case "d":
+      keys.right = true;
+      break;
     case "arrowleft":
-    case "a": keys.left = true; break;
+    case "a":
+      keys.left = true;
+      break;
     case "arrowup":
-    case "w": keys.up = true; break;
+    case "w":
+      keys.up = true;
+      break;
     case "arrowdown":
-    case "s": keys.down = true; break;
-    default: return;
+    case "s":
+      keys.down = true;
+      break;
+    default:
+      return;
   }
   e.preventDefault();
 });
@@ -588,14 +628,23 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener("keyup", (e) => {
   switch (e.key.toLowerCase()) {
     case "arrowright":
-    case "d": keys.right = false; break;
+    case "d":
+      keys.right = false;
+      break;
     case "arrowleft":
-    case "a": keys.left = false; break;
+    case "a":
+      keys.left = false;
+      break;
     case "arrowup":
-    case "w": keys.up = false; break;
+    case "w":
+      keys.up = false;
+      break;
     case "arrowdown":
-    case "s": keys.down = false; break;
-    default: return;
+    case "s":
+      keys.down = false;
+      break;
+    default:
+      return;
   }
   e.preventDefault();
 });
@@ -621,7 +670,8 @@ function getPlayerTilePos(biasPx = 0) {
   let cy = py + hitOY + PLAYER_HIT.h / 2;
 
   if (biasPx) {
-    let dx = 0, dy = 0;
+    let dx = 0,
+      dy = 0;
     if (facing === "right") dx = 1;
     else if (facing === "left") dx = -1;
     else if (facing === "up") dy = -1;
@@ -635,7 +685,10 @@ function getPlayerTilePos(biasPx = 0) {
 }
 
 function isNearTile(playerTx, playerTy, targetTx, targetTy, range = 1) {
-  return Math.abs(playerTx - targetTx) <= range && Math.abs(playerTy - targetTy) <= range;
+  return (
+    Math.abs(playerTx - targetTx) <= range &&
+    Math.abs(playerTy - targetTy) <= range
+  );
 }
 
 function handleInteract() {
@@ -644,9 +697,17 @@ function handleInteract() {
 
   // Boss-Truhe öffnen
   if (bossChest && isNearTile(tx, ty, bossChest.tx, bossChest.ty, 1)) {
-    showTempMessage("Du öffnest die Truhe...\nDu hast die 🌶️ Chilischote gefunden!", 2600, {
-      typewriter: true, charDelay: 18, x: "50%", y: "50%", center: true
-    });
+    showTempMessage(
+      "You open the Chest...\nYou have found the 🌶️ Chili!",
+      2600,
+      {
+        typewriter: true,
+        charDelay: 18,
+        x: "50%",
+        y: "50%",
+        center: true,
+      }
+    );
 
     setListStep(5); // Chili
     unlockBossExit(currentLevel);
@@ -656,7 +717,7 @@ function handleInteract() {
     return;
   }
 
-  // P-Truhe (Gun) öffnen
+  // P-Truhe (CornGun) öffnen
   if (!HAS_GUN) {
     for (let dy = -1; dy <= 1; dy++) {
       for (let dx = -1; dx <= 1; dx++) {
@@ -678,12 +739,14 @@ function handleInteract() {
   if (typeof fn === "function") {
     fn({
       level: currentLevel,
-      tile, tx, ty,
+      tile,
+      tx,
+      ty,
       showTempMessage,
       playerEl: player,
       gameEl: game,
       facing,
-      playerTile: { tx, ty }
+      playerTile: { tx, ty },
     });
     return;
   }
@@ -692,12 +755,14 @@ function handleInteract() {
   if (typeof currentLevel.onInteract === "function") {
     currentLevel.onInteract({
       level: currentLevel,
-      tile, tx, ty,
+      tile,
+      tx,
+      ty,
       showTempMessage,
       playerEl: player,
       gameEl: game,
       facing,
-      playerTile: { tx, ty }
+      playerTile: { tx, ty },
     });
     return;
   }
@@ -708,9 +773,11 @@ function handleInteract() {
    ========================= */
 function isWallTile(tx, ty) {
   if (!currentLevel) return false;
-  if (tx < 0 || ty < 0 || tx >= currentLevel.cols || ty >= currentLevel.rows) return true;
+  if (tx < 0 || ty < 0 || tx >= currentLevel.cols || ty >= currentLevel.rows)
+    return true;
 
-  if (typeof currentLevel.isSolid === "function") return currentLevel.isSolid(tx, ty) === true;
+  if (typeof currentLevel.isSolid === "function")
+    return currentLevel.isSolid(tx, ty) === true;
   return wallGrid?.[ty]?.[tx] === true;
 }
 
@@ -737,16 +804,24 @@ function getEnemyCfg(level, type) {
     mode: cfg.mode || (type === "wolf" ? "patrolX" : "infinity"),
     scale: typeof cfg.scale === "number" ? cfg.scale : DEFAULT_SCALES[type],
 
-    a: typeof cfg.a === "number" ? cfg.a : (type === "wolf" ? 180 : 140),
-    b: typeof cfg.b === "number" ? cfg.b : (type === "wolf" ? 140 : 90),
-    curveSpeed: typeof cfg.curveSpeed === "number"
-      ? cfg.curveSpeed
-      : (typeof cfg.speed === "number" ? cfg.speed : (type === "wolf" ? 0.015 : 0.02)),
+    a: typeof cfg.a === "number" ? cfg.a : type === "wolf" ? 180 : 140,
+    b: typeof cfg.b === "number" ? cfg.b : type === "wolf" ? 140 : 90,
+    curveSpeed:
+      typeof cfg.curveSpeed === "number"
+        ? cfg.curveSpeed
+        : typeof cfg.speed === "number"
+        ? cfg.speed
+        : type === "wolf"
+        ? 0.015
+        : 0.02,
 
     distance: typeof cfg.distance === "number" ? cfg.distance : 8,
-    patrolSpeed: typeof cfg.patrolSpeed === "number"
-      ? cfg.patrolSpeed
-      : (typeof cfg.speed === "number" ? cfg.speed : 1.2),
+    patrolSpeed:
+      typeof cfg.patrolSpeed === "number"
+        ? cfg.patrolSpeed
+        : typeof cfg.speed === "number"
+        ? cfg.speed
+        : 1.2,
   };
 }
 
@@ -764,7 +839,7 @@ function getCowCfg(level) {
     scale: typeof cfg.scale === "number" ? cfg.scale : 2,
     ox: typeof cfg.ox === "number" ? cfg.ox : 0,
     oy: typeof cfg.oy === "number" ? cfg.oy : 0,
-    behindPlayer: cfg.behindPlayer === true
+    behindPlayer: cfg.behindPlayer === true,
   };
 }
 
@@ -803,7 +878,7 @@ function getBossCfg(level) {
     turnMinMs: typeof cfg.turnMinMs === "number" ? cfg.turnMinMs : 600,
     turnMaxMs: typeof cfg.turnMaxMs === "number" ? cfg.turnMaxMs : 1600,
     shotMinMs: typeof cfg.shotMinMs === "number" ? cfg.shotMinMs : 900,
-    shotMaxMs: typeof cfg.shotMaxMs === "number" ? cfg.shotMaxMs : 2600
+    shotMaxMs: typeof cfg.shotMaxMs === "number" ? cfg.shotMaxMs : 2600,
   };
 }
 
@@ -824,9 +899,13 @@ function spawnBossFromLevel(level) {
   const y = cfg.ty * TILE + (TILE - 64 * cfg.scale) / 2;
 
   boss = {
-    el, x, y,
-    vx: 0, vy: 0,
-    dirX: 1, dirY: 0,
+    el,
+    x,
+    y,
+    vx: 0,
+    vy: 0,
+    dirX: 1,
+    dirY: 0,
     scale: cfg.scale,
     baseSpeed: cfg.speed,
     speed: cfg.speed,
@@ -838,7 +917,7 @@ function spawnBossFromLevel(level) {
     shotMaxMs: cfg.shotMaxMs,
   };
 
-  // HP-Bar DOM
+  // HP-Bar Boss
   const hpWrap = document.createElement("div");
   hpWrap.className = "boss-hp-wrap";
 
@@ -859,11 +938,11 @@ function spawnBossFromLevel(level) {
 function updateBossHpBar() {
   if (!boss || !boss._hpFill) return;
 
-  const hp = (typeof window.BOSS_HP === "number") ? window.BOSS_HP : 20;
+  const hp = typeof window.BOSS_HP === "number" ? window.BOSS_HP : 20;
   const max = boss._hpMax || 20;
 
   const pct = Math.max(0, Math.min(1, hp / max));
-  boss._hpFill.style.width = (pct * 100) + "%";
+  boss._hpFill.style.width = pct * 100 + "%";
 
   if (pct > 0.5) boss._hpFill.style.background = "#2cff3a";
   else if (pct > 0.25) boss._hpFill.style.background = "#ffd400";
@@ -886,7 +965,8 @@ function setBossDir(dx, dy) {
   if (dx < 0) boss.el.classList.add("walk-left");
   else if (dx > 0) boss.el.classList.add("walk-right");
   else {
-    if (boss.el.classList.contains("walk-left")) boss.el.classList.add("walk-left");
+    if (boss.el.classList.contains("walk-left"))
+      boss.el.classList.add("walk-left");
     else boss.el.classList.add("walk-right");
     boss.el.classList.add(dy < 0 ? "walk-up" : "walk-down");
   }
@@ -901,7 +981,7 @@ function bossHitRectAt(x, y) {
     x: x + BOSS_HIT_BASE.ox * s,
     y: y + BOSS_HIT_BASE.oy * s,
     w: BOSS_HIT_BASE.w * s,
-    h: BOSS_HIT_BASE.h * s
+    h: BOSS_HIT_BASE.h * s,
   };
 }
 
@@ -921,7 +1001,8 @@ function chooseRandomBossDir() {
 function updateBoss(dt) {
   if (!boss) return;
 
-  const wantedSpeed = (window.BOSS_HP <= 10) ? (boss.baseSpeed * 2) : boss.baseSpeed;
+  const wantedSpeed =
+    window.BOSS_HP <= 10 ? boss.baseSpeed * 2 : boss.baseSpeed;
   if (boss.speed !== wantedSpeed) {
     boss.speed = wantedSpeed;
     boss.vx = boss.dirX * boss.speed;
@@ -933,15 +1014,18 @@ function updateBoss(dt) {
   if (now >= boss.nextTurnAt) {
     const d = chooseRandomBossDir();
     setBossDir(d.dx, d.dy);
-    boss.nextTurnAt = now + (boss.turnMinMs + Math.random() * (boss.turnMaxMs - boss.turnMinMs));
+    boss.nextTurnAt =
+      now +
+      (boss.turnMinMs + Math.random() * (boss.turnMaxMs - boss.turnMinMs));
   }
 
-  const tryMove = (nx, ny) => !rectIntersectsWall(
-    bossHitRectAt(nx, ny).x,
-    bossHitRectAt(nx, ny).y,
-    bossHitRectAt(nx, ny).w,
-    bossHitRectAt(nx, ny).h
-  );
+  const tryMove = (nx, ny) =>
+    !rectIntersectsWall(
+      bossHitRectAt(nx, ny).x,
+      bossHitRectAt(nx, ny).y,
+      bossHitRectAt(nx, ny).w,
+      bossHitRectAt(nx, ny).h
+    );
 
   let nx = boss.x + boss.vx * dt;
   let ny = boss.y + boss.vy * dt;
@@ -967,7 +1051,9 @@ function updateBoss(dt) {
 
   if (now >= boss.nextShotAt) {
     bossShootRandomFireball();
-    boss.nextShotAt = now + (boss.shotMinMs + Math.random() * (boss.shotMaxMs - boss.shotMinMs));
+    boss.nextShotAt =
+      now +
+      (boss.shotMinMs + Math.random() * (boss.shotMaxMs - boss.shotMinMs));
   }
 }
 
@@ -979,8 +1065,14 @@ function bossShootRandomFireball() {
   const cy = boss.y + (64 * s) / 2 - 6;
 
   const dirs = [
-    { dx: 1, dy: 0 }, { dx: -1, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: -1 },
-    { dx: 1, dy: 1 }, { dx: 1, dy: -1 }, { dx: -1, dy: 1 }, { dx: -1, dy: -1 }
+    { dx: 1, dy: 0 },
+    { dx: -1, dy: 0 },
+    { dx: 0, dy: 1 },
+    { dx: 0, dy: -1 },
+    { dx: 1, dy: 1 },
+    { dx: 1, dy: -1 },
+    { dx: -1, dy: 1 },
+    { dx: -1, dy: -1 },
   ];
   const d = dirs[(Math.random() * dirs.length) | 0];
   const len = Math.hypot(d.dx, d.dy) || 1;
@@ -993,10 +1085,11 @@ function bossShootRandomFireball() {
 
   const fb = {
     el,
-    x: cx, y: cy,
+    x: cx,
+    y: cy,
     vx: dx * BOSS_FIREBALL_SPEED,
     vy: dy * BOSS_FIREBALL_SPEED,
-    born: performance.now()
+    born: performance.now(),
   };
 
   bossFireballs.push(fb);
@@ -1046,12 +1139,22 @@ function spawnChestAtBoss() {
   const cx = boss.x + (64 * s) / 2;
   const cy = boss.y + (64 * s) / 2;
 
-  const tx = Math.max(0, Math.min(currentLevel.cols - 1, Math.floor(cx / TILE)));
-  const ty = Math.max(0, Math.min(currentLevel.rows - 1, Math.floor(cy / TILE)));
+  const tx = Math.max(
+    0,
+    Math.min(currentLevel.cols - 1, Math.floor(cx / TILE))
+  );
+  const ty = Math.max(
+    0,
+    Math.min(currentLevel.rows - 1, Math.floor(cy / TILE))
+  );
 
   if (bossChest?.el) bossChest.el.remove();
 
-  const el = spawnChestAtTile(tx, ty, { className: "boss-chest", z: 6, scale: 3 });
+  const el = spawnChestAtTile(tx, ty, {
+    className: "boss-chest",
+    z: 6,
+    scale: 3,
+  });
   bossChest = { el, tx, ty };
 }
 
@@ -1059,7 +1162,7 @@ function spawnChestAtBoss() {
    COW DECO
    ========================= */
 function removeAllCowDecos() {
-  document.querySelectorAll(".cow-deco").forEach(el => el.remove());
+  document.querySelectorAll(".cow-deco").forEach((el) => el.remove());
   cows.length = 0;
 }
 
@@ -1072,8 +1175,8 @@ function spawnCow(tx, ty, cfg) {
   const frameW = cfg.frameW ?? 96;
   const frameH = cfg.frameH ?? 128;
 
-  const sheetW = (cfg.sheetW ?? (frameW * 4));
-  const sheetH = (cfg.sheetH ?? (frameH * 2));
+  const sheetW = cfg.sheetW ?? frameW * 4;
+  const sheetH = cfg.sheetH ?? frameH * 2;
 
   el.style.setProperty("--cowSprite", `url("${encodeURI(cfg.sprite)}")`);
   el.style.setProperty("--cowFrameW", `${frameW}px`);
@@ -1112,13 +1215,15 @@ function findAllMarkers(level, marker) {
 function applyEnemyTransform(e) {
   const s = e.cfg.scale;
   const isWolf = e.type === "wolf";
-  const flip = (isWolf && e.dir === -1) ? -1 : 1;
+  const flip = isWolf && e.dir === -1 ? -1 : 1;
 
   const w = e.el.clientWidth;
-  const xFix = (flip === -1) ? (w * s) : 0;
+  const xFix = flip === -1 ? w * s : 0;
 
   e.el.style.transformOrigin = "top left";
-  e.el.style.transform = `translate(${e.x + xFix}px, ${e.y}px) scale(${flip * s}, ${s})`;
+  e.el.style.transform = `translate(${e.x + xFix}px, ${e.y}px) scale(${
+    flip * s
+  }, ${s})`;
 }
 
 function spawnEnemy(type, tx, ty) {
@@ -1159,8 +1264,8 @@ function updateEnemyInfinity(e) {
   const cosT = Math.cos(e.t);
   const denom = 20 + sinT * sinT;
 
-  const nx = e.homeX + a * cosT / denom;
-  const ny = e.homeY + b * cosT * sinT / denom;
+  const nx = e.homeX + (a * cosT) / denom;
+  const ny = e.homeY + (b * cosT * sinT) / denom;
 
   const dx = nx - e.x;
   const dy = ny - e.y;
@@ -1184,15 +1289,22 @@ function updateWolfPatrolX(e) {
 
   e.x += speed * e.dir;
 
-  if (e.x >= e.maxX) { e.x = e.maxX; e.dir = -1; }
-  if (e.x <= e.startX) { e.x = e.startX; e.dir = 1; }
+  if (e.x >= e.maxX) {
+    e.x = e.maxX;
+    e.dir = -1;
+  }
+  if (e.x <= e.startX) {
+    e.x = e.startX;
+    e.dir = 1;
+  }
 
   setWalkClass(e.el, e.dir === 1 ? "right" : "left");
   applyEnemyTransform(e);
 }
 
 function updateEnemy(e) {
-  if (e.type === "wolf" && e.cfg.mode === "patrolX") return updateWolfPatrolX(e);
+  if (e.type === "wolf" && e.cfg.mode === "patrolX")
+    return updateWolfPatrolX(e);
   return updateEnemyInfinity(e);
 }
 
@@ -1214,8 +1326,8 @@ function renderTile8Sprites(level) {
       if (row[tx] === "8") {
         const el = document.createElement("div");
         el.className = "tile8-anim";
-        el.style.left = (tx * TILE) + "px";
-        el.style.top = (ty * TILE) + "px";
+        el.style.left = tx * TILE + "px";
+        el.style.top = ty * TILE + "px";
         decor.appendChild(el);
       }
     }
@@ -1242,8 +1354,8 @@ function renderDebugWalls(level) {
         const el = document.createElement("div");
         el.className = "tile wall";
         el.style.position = "absolute";
-        el.style.left = (tx * TILE) + "px";
-        el.style.top = (ty * TILE) + "px";
+        el.style.left = tx * TILE + "px";
+        el.style.top = ty * TILE + "px";
         el.style.width = TILE + "px";
         el.style.height = TILE + "px";
         tiles.appendChild(el);
@@ -1256,9 +1368,7 @@ function renderDebugWalls(level) {
    LEVEL LOADER
    ========================= */
 function loadLevel(level) {
-
-   // ✅ HIER GANZ OBEN REIN (als allererstes)
-  document.querySelectorAll(".full-deco").forEach(el => el.remove());
+  document.querySelectorAll(".full-deco").forEach((el) => el.remove());
 
   const ov = document.getElementById("lvlFadeOverlay");
   if (ov) ov.remove();
@@ -1272,13 +1382,13 @@ function loadLevel(level) {
 
   currentLevel = {
     ...level,
-    walls: level.walls.map(r => ("" + r)),
+    walls: level.walls.map((r) => "" + r),
     flags: level.flags ? structuredClone(level.flags) : undefined,
-    _spentTriggers: level._spentTriggers ? new Set(level._spentTriggers) : undefined
+    _spentTriggers: level._spentTriggers
+      ? new Set(level._spentTriggers)
+      : undefined,
   };
   level = currentLevel;
-
-
 
   TILE = level.tileSize;
 
@@ -1298,7 +1408,10 @@ function loadLevel(level) {
   let spawn = null;
   for (let y = 0; y < level.walls.length; y++) {
     const x = level.walls[y].indexOf(spawnChar);
-    if (x !== -1) { spawn = { tx: x, ty: y }; break; }
+    if (x !== -1) {
+      spawn = { tx: x, ty: y };
+      break;
+    }
   }
   if (!spawn) spawn = level.spawn;
 
@@ -1307,17 +1420,17 @@ function loadLevel(level) {
   clearBoss();
 
   const wolfSpawns = level.enemies?.wolf ? findAllMarkers(level, "W") : [];
-  const batSpawns  = level.enemies?.bat  ? findAllMarkers(level, "F") : [];
+  const batSpawns = level.enemies?.bat ? findAllMarkers(level, "F") : [];
 
   const cowCfg = getCowCfg(level);
-  const cowSpawns = (cowCfg.enabled && level?.cows?.cow) ? findAllMarkers(level, "K") : [];
+  const cowSpawns =
+    cowCfg.enabled && level?.cows?.cow ? findAllMarkers(level, "K") : [];
 
-  // WICHTIG: K nicht ersetzen, damit interactions["K"] weiterhin geht
-  level.walls = level.walls.map(r =>
+  level.walls = level.walls.map((r) =>
     r.replaceAll(spawnChar, "0").replaceAll("W", "0").replaceAll("F", "0")
   );
 
-  wallGrid = level.walls.map(rowStr => [...rowStr].map(c => c === "1"));
+  wallGrid = level.walls.map((rowStr) => [...rowStr].map((c) => c === "1"));
   spawnGunChestsFromP(level);
 
   renderDebugWalls(level);
@@ -1332,9 +1445,9 @@ function loadLevel(level) {
   update._lastTime = null;
 
   for (const s of wolfSpawns) spawnEnemy("wolf", s.tx, s.ty);
-  for (const s of batSpawns)  spawnEnemy("bat", s.tx, s.ty);
+  for (const s of batSpawns) spawnEnemy("bat", s.tx, s.ty);
 
-  for (const s of cowSpawns)  spawnCow(s.tx, s.ty, cowCfg);
+  for (const s of cowSpawns) spawnCow(s.tx, s.ty, cowCfg);
 
   SAFE_UNTIL = performance.now() + 1200;
 
@@ -1346,7 +1459,7 @@ function loadLevel(level) {
       showTempMessage,
       playerEl: player,
       gameEl: game,
-      facing
+      facing,
     });
   }
 
@@ -1358,7 +1471,7 @@ function loadLevel(level) {
       level: currentLevel,
       showTempMessage,
       playerEl: player,
-      gameEl: game
+      gameEl: game,
     });
   }
 }
@@ -1380,11 +1493,12 @@ function update(now = performance.now()) {
 
   // MOVEMENT
   if (!PLAYER_LOCKED) {
-    let vx = 0, vy = 0;
+    let vx = 0,
+      vy = 0;
     if (keys.right) vx += SPEED * dt;
-    if (keys.left)  vx -= SPEED * dt;
-    if (keys.down)  vy += SPEED * dt;
-    if (keys.up)    vy -= SPEED * dt;
+    if (keys.left) vx -= SPEED * dt;
+    if (keys.down) vy += SPEED * dt;
+    if (keys.up) vy -= SPEED * dt;
 
     const len = Math.hypot(vx, vy);
     if (len > 0) {
@@ -1411,22 +1525,24 @@ function update(now = performance.now()) {
     player.style.animation = "";
 
     if (vx > 0) {
-      facing = "right"; facingX = "right";
+      facing = "right";
+      facingX = "right";
       setWalkClass(player, "right");
     } else if (vx < 0) {
-      facing = "left"; facingX = "left";
+      facing = "left";
+      facingX = "left";
       setWalkClass(player, "left");
     } else if (vy < 0) {
       facing = "up";
-      player.classList.remove("walk-up","walk-down");
+      player.classList.remove("walk-up", "walk-down");
       player.classList.add("walk-up");
-      player.classList.remove("walk-left","walk-right");
+      player.classList.remove("walk-left", "walk-right");
       player.classList.add(facingX === "left" ? "walk-left" : "walk-right");
     } else if (vy > 0) {
       facing = "down";
-      player.classList.remove("walk-up","walk-down");
+      player.classList.remove("walk-up", "walk-down");
       player.classList.add("walk-down");
-      player.classList.remove("walk-left","walk-right");
+      player.classList.remove("walk-left", "walk-right");
       player.classList.add(facingX === "left" ? "walk-left" : "walk-right");
     } else {
       player.classList.remove("walk-up", "walk-down");
@@ -1456,7 +1572,7 @@ function update(now = performance.now()) {
         showTempMessage,
         playerEl: player,
         gameEl: game,
-        facing
+        facing,
       });
     }
   }
