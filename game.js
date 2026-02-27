@@ -11,7 +11,7 @@ if (restartBtn) restartBtn.addEventListener("click", restartGame);
 
 const batTpl = document.getElementById("batTpl");
 const wolfTpl = document.getElementById("wolfTpl");
-const cowTpl = document.getElementById("cowTpl"); // NEU
+const cowTpl = document.getElementById("cowTpl"); 
 
 let gameStarted = false;
 
@@ -36,7 +36,7 @@ let bossChest = null; // { el, tx, ty }
 /* =========================
    BOSS STATE
    ========================= */
-let boss = null; // { el, x,y, vx,vy, dirX, dirY, speed, baseSpeed, scale, nextTurnAt, nextShotAt }
+let boss = null;
 const bossFireballs = []; // { el, x,y, vx,vy, born }
 const BOSS_FIREBALL_SPEED = 520; // px/s
 const BOSS_FIREBALL_LIFETIME = 2400; // ms
